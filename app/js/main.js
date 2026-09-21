@@ -28,6 +28,8 @@ const routes = [
   [/^\/watch(?:\/(N[1-5]))?$/, () => import('./screens/watch.js').then((m) => m.list)],
   [/^\/watch\/v\/([\w-]+)$/, () => import('./screens/watch.js').then((m) => m.player)],
   [/^\/read(?:\/(N[1-5]))?$/, () => import('./screens/read.js').then((m) => m.list)],
+  [/^\/listen(?:\/(N[1-5]))?$/, () => import('./screens/listen.js').then((m) => m.list)],
+  [/^\/listen\/s\/([\w-]+)$/, () => import('./screens/listen.js').then((m) => m.player)],
   [/^\/read\/s\/([\w-]+)$/, () => import('./screens/read.js').then((m) => m.reader)],
   [/^\/saved$/, () => import('./screens/me.js').then((m) => m.saved)],
   [/^\/stats$/, () => import('./screens/me.js').then((m) => m.stats)],
@@ -37,7 +39,7 @@ const routes = [
   [/^\/business\/(.+)$/, () => import('./screens/business.js').then((m) => m.module)],
 ];
 
-const TABS = { today: /^\/today/, levels: /^\/(levels|level|words|kanji|grammar|kana|watch|read|learn|conjugate|business|produce)/, saved: /^\/saved/, stats: /^\/(stats|settings|credits)/ };
+const TABS = { today: /^\/today/, levels: /^\/(levels|level|words|kanji|grammar|kana|watch|read|learn|conjugate|business|produce|listen)/, saved: /^\/saved/, stats: /^\/(stats|settings|credits)/ };
 
 export const go = (path, replace = false) => {
   if (replace) location.replace(`#${path}`);

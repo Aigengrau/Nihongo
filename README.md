@@ -78,6 +78,7 @@ Open the `https://….trycloudflare.com` URL it prints, on your phone.
 | **Grammar** | 695 grammar points with formation, nuance, worked examples, "watch out" notes, and links to the points they are confused with. |
 | **Flashcards** | FSRS-5 spaced repetition — the algorithm Anki now ships by default. Four grade buttons, each showing when you will next see the card. |
 | **Reading** | 15 original graded short stories (3 per level, 418 sentences) written to each level's exact kanji and grammar list and independently checked, plus i+1 sentence practice from Tatoeba and a paste-anything reader. |
+| **Listen** | Japanese audio with big Japanese + English subtitles, at every level. Tap any word and it pauses while you read. Works offline. |
 | **Watch** | 131 verified YouTube videos with big Japanese + English subtitles below the player. Tap any word. (Subtitle tracks need one build step — see below.) |
 | **Conjugation drill** | 1,848 verbs and adjectives, drilled only in forms you have reached at your level. |
 | **Say it yourself** | Production practice — English in, Japanese out, built from kana tiles. Unlocks per word once you can reliably recognise it. |
@@ -143,6 +144,30 @@ Only needed if you want fresher upstream data. `app/data/` is already built.
 npm run fetch     # download the source corpora into build/cache/  (~150 MB)
 npm run build     # rebuild app/data/                              (~10 MB)
 ```
+
+### Why Listen mode exists
+
+The request was video with Japanese audio and both Japanese and English
+subtitles. YouTube has exactly that and will not let anything fetch the caption
+tracks (see below). The obvious alternatives were checked and none of them
+carry Japanese-audio material with bilingual subtitles:
+
+| Source | Finding |
+|---|---|
+| TED (`graphql.ted.com` + `/talks/subtitles/id/<id>/lang/<lang>`) | The API works well and returns clean timed cues in both languages — but every one of the 50 talks sampled is **English audio** with translated subtitles. Wrong direction for listening practice. |
+| Wikimedia Commons | Zero Japanese TimedText pages, zero video hits. |
+| archive.org | 3,455 Japanese items, 198 with subtitles — nearly all auto-generated English ASR, no bilingual pairs. |
+| Vimeo | oembed 404s; the API needs an account token. |
+
+So the app speaks the material itself, using the device's Japanese
+text-to-speech voice over the graded stories and sentences. Because the app
+drives the speech, the subtitles are synced by construction rather than by
+matching timestamps, pausing is instant, and it works offline at every level
+from N5 to N1 — which the video route never would have.
+
+It needs a Japanese TTS voice. iPhones have one. On Android, install *Google
+Text-to-speech* and add Japanese under Settings → System → Languages →
+Text-to-speech. Without a voice the screen still works as a reader.
 
 ### Video subtitles
 

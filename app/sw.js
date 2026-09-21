@@ -14,7 +14,7 @@
  *  - Range requests are answered with a real 206, or Safari's <audio> silently
  *    refuses to play.
  */
-const BUILD = 'v1.0.3';
+const BUILD = 'v1.0.4';
 const SHELL = `shell-${BUILD}`;
 // Versioned with the build: a fixed name meant shipped data corrections
 // could never reach anyone who had already installed.
@@ -44,6 +44,7 @@ const SHELL_FILES = [
   './js/screens/me.js',
   './js/screens/business.js',
   './js/screens/produce.js',
+  './js/screens/listen.js',
   './icons/icon.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',

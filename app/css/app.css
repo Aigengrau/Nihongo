@@ -461,3 +461,29 @@ rt {
 
 .tiles { display: grid; gap: 9px; }
 @media (min-width: 560px) { .tiles { grid-template-columns: 1fr 1fr; } }
+
+/* ---------- listen mode ---------- */
+/* The current line is the whole point, so it gets the screen. */
+.listen-stage {
+  margin-top: 12px; min-height: 34dvh;
+  display: grid; place-content: center; gap: 14px; text-align: center;
+  padding: 22px 16px;
+}
+.listen-ja {
+  font-family: var(--jp); font-weight: 600;
+  font-size: clamp(28px, 8.4vw, 46px); line-height: 1.5;
+  line-break: strict; overflow-wrap: anywhere;
+}
+.listen-en { font-size: clamp(15px, 4.4vw, 21px); color: var(--text-dim); line-height: 1.45; }
+.listen-bar {
+  position: sticky; bottom: calc(var(--tab-h) + var(--safe-b) + 8px); z-index: 22;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin-top: 12px; padding: 10px 12px; border-radius: 16px;
+  background: color-mix(in srgb, var(--bg-soft) 94%, transparent);
+  backdrop-filter: blur(10px); border: 1px solid var(--line);
+}
+.listen-play {
+  width: 60px; height: 60px; background: var(--accent); color: #fff;
+}
+.listen-play svg { width: 28px; height: 28px; }
+.listen-bar .vbar-btn[disabled] { opacity: .35; }

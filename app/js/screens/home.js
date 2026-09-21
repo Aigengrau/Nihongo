@@ -91,6 +91,12 @@ export async function today({ view, setChrome }) {
             <span class="tile-sub">Built from words you already know</span></span>
           <span class="tile-end">${CHEV}</span></a>
 
+        <a class="tile" href="#/listen/${esc(level)}">
+          <span class="tile-ico">聴</span>
+          <span class="tile-main"><span class="tile-title">Listen</span>
+            <span class="tile-sub">Japanese audio, big JP + EN subtitles, tap any word</span></span>
+          <span class="tile-end">${CHEV}</span></a>
+
         ${prod.length ? `<a class="tile" href="#/produce">
           <span class="tile-ico">話</span>
           <span class="tile-main"><span class="tile-title">Say it yourself</span>
@@ -231,6 +237,7 @@ export async function level({ params, view, setChrome }) {
       ${tile(`#/conjugate/${lv}`, '活', 'Conjugation drill', 'Verbs and adjectives, all forms')}
       ${tile('#/produce', '話', 'Say it yourself', 'English in, Japanese out — unlocks as you master words')}
       ${tile(`#/read/${lv}`, '読', 'Short stories', 'Reading with tap-to-look-up')}
+      ${tile(`#/listen/${lv}`, '聴', 'Listen', 'Japanese audio with big JP + EN subtitles')}
       ${tile(`#/watch/${lv}`, '見', 'Watch video', 'Big Japanese + English subtitles')}
     </div>
 

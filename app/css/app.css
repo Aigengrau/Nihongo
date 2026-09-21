@@ -79,9 +79,6 @@
 
 html, body {
   margin: 0;
-  /* A single over-wide element would otherwise expand the layout viewport and
-     drag the fixed tab bar off-screen with it. */
-  overflow-x: hidden;
   padding: 0;
   background: var(--bg);
   color: var(--text);
@@ -93,6 +90,13 @@ html, body {
 
 body {
   min-height: 100dvh;
+  /* Belt-and-braces against a stray wide element dragging the fixed tab bar
+     off-screen. It MUST be `clip`, not `hidden`: per spec a non-visible value
+     on one axis forces the other from `visible` to `auto`, which turned both
+     html and body into nested scroll containers and killed touch scrolling on
+     phones. `clip` leaves overflow-y alone. Browsers without `clip` support
+     simply ignore this — the real fixes are the minmax(0,1fr) grid tracks. */
+  overflow-x: clip;
   padding-left: var(--safe-l);
   padding-right: var(--safe-r);
 }

@@ -14,7 +14,7 @@
  *  - Range requests are answered with a real 206, or Safari's <audio> silently
  *    refuses to play.
  */
-const BUILD = 'v1.0.2';
+const BUILD = 'v1.0.3';
 const SHELL = `shell-${BUILD}`;
 // Versioned with the build: a fixed name meant shipped data corrections
 // could never reach anyone who had already installed.

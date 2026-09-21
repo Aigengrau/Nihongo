@@ -1,0 +1,23 @@
+# Downloaded upstream corpora (~150 MB). Recreate with: npm run fetch
+build/cache/
+
+# Downloaded binary, not source. Recreate with the URL in README.
+build/bin/
+
+# Build-time dev dependencies (sharp, playwright)
+node_modules/
+build/node_modules/
+build/package-lock.json
+
+# Test output: screenshots and scratch harnesses from review runs
+build/test/shots/
+build/test/audit/
+build/test/adv/
+build/test/refute/
+build/test/*.png
+
+# Internal QA artefacts from the review pass
+build/review/
+
+.DS_Store
+Thumbs.db

@@ -1,0 +1,13 @@
+import { chromium, devices } from 'playwright';
+import fs from 'node:fs';
+const BASE='http://localhost:8099';
+const src=fs.readFileSync('app/js/screens/watch.js','utf8').replace('scriptOnly = true;','/*patched*/');
+const b=await chromium.launch();
+const ctx=await b.newContext({...devices['Pixel 7']});
+await ctx.route('**/js/screens/watch.js',r=>r.fulfill({contentType:'text/javascript',body:src}));
+await ctx.route('**://*.youtube.com/**', r=>r.abort());
+const p=await ctx.newPage();
+await p.goto(BASE+'/#/watch/v/G-ArHStBCN8',{waitUntil:'load'});
+await p.waitForTimeout(10000);
+console.log('[patched offline] ', (await p.locator('#view').innerText()).replace(/\s+/g,' ').slice(0,400));
+await b.close();

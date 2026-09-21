@@ -1,0 +1,20 @@
+import { chromium, devices } from 'playwright';
+const BASE='http://localhost:8099';
+const b=await chromium.launch();
+const ctx=await b.newContext({...devices['Pixel 7']});
+const p=await ctx.newPage();
+p.on('pageerror',e=>console.log('pageerror',e.message));
+await p.goto(`${BASE}/#/grammar/N5/91`,{waitUntil:'load'});
+await p.waitForTimeout(2000);
+console.log('--- grammar N5 #91 ---');
+console.log((await p.locator('#view').innerText()).replace(/\n+/g,' | ').slice(0,300));
+await p.screenshot({path:'build/test/shots/jp-grammar91.png'});
+
+await p.goto(`${BASE}/#/business/keigo-irregulars`,{waitUntil:'load'});
+await p.waitForTimeout(2000);
+const t=(await p.locator('#view').innerText());
+console.log('\n--- business keigo (死ぬ row) ---');
+const i=t.indexOf('死');
+console.log(i<0?'(not found) first 200: '+t.slice(0,200):t.slice(i-40,i+120).replace(/\n/g,' | '));
+await p.screenshot({path:'build/test/shots/jp-keigo.png',fullPage:true});
+await b.close();

@@ -1,0 +1,77 @@
+{
+  "id": "./",
+  "name": "Nihongo — Japanese N5 to Business",
+  "short_name": "Nihongo",
+  "description": "Learn Japanese from kana to business keigo. Vocabulary, kanji, grammar, graded reading and video with tappable Japanese subtitles. Works offline.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui",
+    "browser"
+  ],
+  "background_color": "#0e1116",
+  "theme_color": "#0e1116",
+  "categories": [
+    "education",
+    "books"
+  ],
+  "lang": "en",
+  "dir": "ltr",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Reviews",
+      "short_name": "Review",
+      "url": "./index.html#/review",
+      "description": "Study the cards that are due"
+    },
+    {
+      "name": "My saved words",
+      "short_name": "Saved",
+      "url": "./index.html#/saved",
+      "description": "Words you saved while reading or watching"
+    },
+    {
+      "name": "Watch with subtitles",
+      "short_name": "Watch",
+      "url": "./index.html#/watch",
+      "description": "Video with tappable Japanese subtitles"
+    }
+  ]
+}

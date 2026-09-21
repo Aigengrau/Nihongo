@@ -1,0 +1,32 @@
+import { chromium, devices } from 'playwright';
+const BASE = 'http://localhost:8099';
+const browser = await chromium.launch();
+const ctx = await browser.newContext({ ...devices['Pixel 7'] });
+const page = await ctx.newPage();
+const errs = [];
+page.on('pageerror', e => errs.push('pageerror: ' + e.message));
+
+console.log('D. /saved leaves a live listener that redraws over other screens');
+await page.goto(`${BASE}/#/saved`, { waitUntil: 'load' });
+await page.waitForTimeout(2500);
+console.log('   saved screen:', (await page.locator('#view').innerText()).slice(0,50).replace(/\s+/g,' '));
+// navigate to the paste reader and save a word from the word sheet
+await page.evaluate(() => { location.hash = '/read/s/paste'; });
+await page.waitForTimeout(1500);
+await page.fill('#src', '今日は天気がいいので、公園まで歩いて行きました。');
+await page.evaluate(() => document.getElementById('go').click());
+await page.waitForTimeout(1500);
+console.log('   reader chips:', await page.locator('.wchip').count());
+await page.evaluate(() => document.querySelector('.wchip').click());
+await page.waitForTimeout(1200);
+console.log('   word sheet open:', await page.locator('#sheet').isVisible());
+await page.evaluate(() => document.getElementById('sheetSave').click());
+await page.waitForTimeout(1500);
+const title = await page.locator('#appbarTitle').innerText();
+const body = (await page.locator('#view').innerText()).slice(0,90).replace(/\s+/g,' ');
+console.log(`   after saving: hash=${await page.evaluate(()=>location.hash)} appbar="${title}"`);
+console.log(`   view now shows: ${body}`);
+console.log('   textarea still present?', await page.locator('#src').count());
+console.log('   errors:', errs.length?errs:'none');
+await page.screenshot({path:'build/test/shots/adv-saved-clobber.png'});
+await browser.close();

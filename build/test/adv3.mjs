@@ -1,0 +1,43 @@
+import { chromium, devices } from 'playwright';
+const BASE = 'http://localhost:8099';
+const browser = await chromium.launch();
+const ctx = await browser.newContext({ ...devices['Pixel 7'] });
+const page = await ctx.newPage();
+const errs = [];
+page.on('pageerror', e => errs.push('pageerror: ' + e.message));
+
+console.log('C1. conjugation drill: answer, then immediately navigate away');
+await page.goto(`${BASE}/#/conjugate/N5`, { waitUntil: 'load' });
+await page.waitForTimeout(3500);
+console.log('   drill visible? opts=', await page.locator('#opts [data-a]').count());
+await page.locator('#opts [data-a]').first().click();
+await page.evaluate(() => { location.hash = '/stats'; });
+await page.waitForTimeout(300);
+console.log('   right after nav  -> appbar="' + (await page.locator('#appbarTitle').innerText()) + '" view starts: ' + (await page.locator('#view').innerText()).slice(0,60).replace(/\s+/g,' '));
+await page.waitForTimeout(2000);
+console.log('   2s later         -> appbar="' + (await page.locator('#appbarTitle').innerText()) + '" view starts: ' + (await page.locator('#view').innerText()).slice(0,60).replace(/\s+/g,' '));
+console.log('   drill opts still on screen while on Stats:', await page.locator('#opts [data-a]').count());
+console.log('   errors:', errs.length ? errs : 'none');
+errs.length = 0;
+
+console.log('\nC2. kana quiz sheet: answer, then navigate away');
+await page.goto(`${BASE}/#/kana`, { waitUntil: 'load' });
+await page.waitForTimeout(1500);
+await page.click('#quiz'); await page.waitForTimeout(400);
+await page.locator('#opts [data-r]').first().click();
+await page.evaluate(() => { location.hash = '/today'; });
+await page.waitForTimeout(1500);
+console.log('   on Today, sheet visible?', await page.locator('#sheet').isVisible(), ' body overflow=', await page.evaluate(()=>document.body.style.overflow));
+console.log('   errors:', errs.length ? errs : 'none');
+errs.length = 0;
+
+console.log('\nC3. business keigo drill: answer, then navigate away');
+await page.goto(`${BASE}/#/business/keigo-irregulars`, { waitUntil: 'load' });
+await page.waitForTimeout(1500);
+await page.click('[data-m="drill"]'); await page.waitForTimeout(500);
+await page.locator('#opts [data-a]').first().click();
+await page.evaluate(() => { location.hash = '/stats'; });
+await page.waitForTimeout(2500);
+console.log('   on Stats: appbar="' + (await page.locator('#appbarTitle').innerText()) + '"');
+console.log('   errors:', errs.length ? errs : 'none');
+await browser.close();

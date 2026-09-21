@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- viewport-fit=cover is required or env(safe-area-inset-*) resolves to 0 and the
+     header sits under the iPhone notch. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5">
+<title>Nihongo</title>
+<meta name="description" content="Learn Japanese from kana to business keigo — offline, on your phone.">
+<meta name="theme-color" content="#0e1116" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#fbfaf8" media="(prefers-color-scheme: light)">
+<meta name="color-scheme" content="dark light">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Nihongo">
+<link rel="stylesheet" href="./css/app.css">
+</head>
+<body>
+
+<div id="boot" class="boot">
+  <div class="boot-mark" aria-hidden="true">語</div>
+  <p class="boot-text">Loading your Japanese…</p>
+  <noscript><p class="boot-text">This app needs JavaScript.</p></noscript>
+</div>
+
+<header id="appbar" class="appbar" hidden>
+  <button class="appbar-back" id="backBtn" aria-label="Back" hidden>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <h1 class="appbar-title" id="appbarTitle">Today</h1>
+  <div class="appbar-actions" id="appbarActions"></div>
+</header>
+
+<main id="view" class="view" tabindex="-1"></main>
+
+<nav id="tabbar" class="tabbar" hidden aria-label="Main">
+  <a class="tab" href="#/today" data-tab="today">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 8h-2v9h-5v-6h-4v6H5v-9H3z"/></svg>
+    <span>Today</span>
+    <b class="tab-badge" id="dueBadge" hidden>0</b>
+  </a>
+  <a class="tab" href="#/levels" data-tab="levels">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v3H4zm0 5.5h16v3H4zM4 16h16v3H4z"/></svg>
+    <span>Levels</span>
+  </a>
+  <a class="tab" href="#/saved" data-tab="saved">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12a1 1 0 011 1v17l-7-4-7 4V4a1 1 0 011-1z"/></svg>
+    <span>Saved</span>
+  </a>
+  <a class="tab" href="#/stats" data-tab="stats">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16v2H4zM6 10h3v7H6zm5-5h3v12h-3zm5 8h3v4h-3z"/></svg>
+    <span>Stats</span>
+  </a>
+</nav>
+
+<div id="sheet" class="sheet" hidden role="dialog" aria-modal="true" aria-label="Word details">
+  <div class="sheet-scrim" data-close></div>
+  <div class="sheet-panel" id="sheetPanel">
+    <div class="sheet-grab" data-close aria-hidden="true"></div>
+    <div class="sheet-body" id="sheetBody"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<div id="updateBar" class="updatebar" hidden>
+  <span>A new version is ready.</span>
+  <button id="updateBtn" class="btn btn-sm">Restart</button>
+</div>
+
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "nihongo-build",
+  "private": true,
+  "type": "module",
+  "description": "Build-time only: data pipeline and icon generation. Not shipped to the app.",
+  "dependencies": {
+    "sharp": "^0.35.4"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  }
+}

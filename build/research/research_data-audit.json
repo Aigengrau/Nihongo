@@ -1,0 +1,316 @@
+{
+ "summary": "I downloaded and inspected every source end-to-end and built a working merge prototype. OpenJLPT is the Tanos/JLPT-Kanji.com word list (662/632/1784/1793/3463 = 8,334 vocab; 2,211 kanji) — good structure but with real defects: 889 entries have NO example sentences (563 of them N1), 27 readings contain garbage (POS markers like 「（感）」, slash-joined multi-readings, one true mojibake 「Uӣ[い」 for 賛成), 20 words are slash-joined multi-forms, and ~243 surface forms appear in two levels — many N3 rows are wrong-homophone EDICT lookups (はい → \"wear/put on (sword)\", どう → \"child/servant\"). The confirmed rule is: `reading` is empty exactly when the word is kana-only (0 kanji-containing words have an empty reading, across all 8,334), with 32 N3/N2 exceptions where the field was filled (sometimes with junk). Every gap is fixable at build time: JPDB v2.2 gives frequency ranks for 8,294/8,334 words, kanjium gives pitch accent for 8,194/8,334, kuromoji (npm, 4,521 sentences/sec) segments and reads every sentence, and jmdict-examples fills 656 of the 889 missing-example rows. My full merge produced 3.08 MB raw / 812 KB brotli for all five levels with readings repaired, frequency-sorted, pitch-annotated and pre-tokenized examples — N5 alone is 51 KB brotli. KanjiVG covers 2,211/2,211 JLPT kanji (457 KB brotli, rounded) and also carries component decomposition for free. A compact JMdict-common tap-a-word dictionary is 1.95 MB raw / 560 KB brotli; full JMdict sharded into 64 lazy shards has a largest shard of 195 KB gzip.",
+ "recommendations": [
+  {
+   "title": "Use OpenJLPT as the spine, but run a repair pass — do NOT ship it raw",
+   "decision": "Keep OpenJLPT's 8,334 rows as the canonical per-level vocab spine (it is the Tanos list, matches jlpt-vocab-api totals exactly for N5/N4/N1, and matches kanji-jouyou.json's jlpt_new distribution exactly for N5=79/N4=166/N3=367/N2=367). But at build time: (a) split the 20 slash-joined words into `word` + `alt[]`; (b) reject any `reading` that contains a non-kana char (27 rows) and refill from open-anki-jlpt-decks, then kuromoji; (c) drop the duplicate-across-level row where the lower-level entry already exists AND the higher-level meaning is a different homophone (the 243 collisions — quarantine, don't auto-merge).",
+   "why": "Verified by running the checks: 27 bad readings incl. genuine mojibake (N3 賛成 reading=\"Uӣ[い\"), 12 rows whose reading is a POS marker 「（感）」「（副）」, and N3 rows whose meaning belongs to a homophone (そこ→\"bottom/sole\"=底, はい→\"wear/put on (sword)\"=佩く, どう→\"child/servant/foolishness\"=童). My repair pass fixed 19 readings automatically and left N5 with 0 missing readings.",
+   "priority": "must-have"
+  },
+  {
+   "title": "Sort every level by JPDB frequency rank, not alphabetically",
+   "decision": "Bake `f` (JPDB v2.2 rank) onto every word and ship each level pre-sorted ascending by rank. Expose a 'Most useful first' vs 'A–Z' toggle. Word #1 in N5 becomes する (rank 11), ある (14) — exactly the fast-start order the user asked for.",
+   "why": "JPDB covers 8,294/8,334 (99.5%) of JLPT vocab. Measured medians: N5=1625, N4=2276, N3=3074, N2=12724, N1=12325. OpenJLPT's native order is alphabetical-by-kana, which buries する and ある deep in the list. Costs nothing at runtime since the sort happens at build time.",
+   "priority": "must-have"
+  },
+  {
+   "title": "Warn the builder: N2 and N1 are NOT frequency-ordered relative to each other",
+   "decision": "Do not present N2→N1 as 'harder = rarer'. Median JPDB rank is N2=12724 vs N1=12325 — N1 words are on average slightly MORE common than N2 words. For the 'basic fast → professional' arc, drive progression off frequency rank (a cross-level 'Top 1000 / Top 2000 / Top 5000' track) rather than off JLPT level alone.",
+   "why": "Measured directly from the JPDB rank join. Also 574/7141 (8%) of words that appear in both OpenJLPT and open-anki-jlpt-decks are assigned DIFFERENT levels (うるさい: OpenJLPT N3 vs Anki N5; 掛ける: N4 vs N5; パート: N4 vs N1). Level boundaries past N3 are genuinely fuzzy, so a frequency spine is more honest and more useful.",
+   "priority": "must-have"
+  },
+  {
+   "title": "Tokenize ALL Japanese text at build time with kuromoji — this is what makes tap-a-word work",
+   "decision": "npm install kuromoji. At build time tokenize every example sentence and every YouTube subtitle cue into `[surface, lemma|0, katakanaReading|0]` triples and bake them into the JSON. The app then renders each token as a tappable <span>, converts the katakana reading to hiragana for furigana, and looks up `lemma` in the JMdict index. Zero runtime tokenizer, zero MeCab, zero CORS.",
+   "why": "Verified working: kuromoji tokenized 今日は会議があるので、早めに会社へ行きます。 into 14 tokens with correct lemma (行き→行く) and reading (会議→カイギ). Benchmarked 14,362 sentences / 111,238 tokens in 3.18s (4,521 sent/s) after a 3.9s dict load. Token data for all examples adds only 246 KB brotli. Without this, tap-a-word on subtitles degrades to naive longest-match and will mis-split conjugated verbs.",
+   "priority": "must-have"
+  },
+  {
+   "title": "Ship jmdict-eng-common as the offline tap-a-word dictionary; lazy-load full JMdict in 64 shards",
+   "decision": "Bundle the compacted jmdict-eng-common (22,640 entries) as a single 560 KB brotli file loaded on first dictionary tap and cached by the service worker. For rare words, lazy-fetch one of 64 shards of the full 218,776-entry JMdict keyed by `firstCodePoint % 64`. Shard on demand, cache forever (JMdict is versioned by release tag).",
+   "why": "Measured: compact common = 1.95 MB raw / 770 KB gzip / 560 KB brotli, plus a 38,899-key surface→index map at 250 KB gzip. Full JMdict compact = 16.31 MB raw / 4.81 MB brotli; sharded x64 the largest single shard is only 195 KB gzip. A phone can hold the common dict in memory permanently and fetch a 195 KB shard in well under a second.",
+   "priority": "must-have"
+  },
+  {
+   "title": "Bundle KanjiVG stroke order — it is small and it covers 100% of JLPT kanji",
+   "decision": "Extract just the `d=\"...\"` path strings from kanjivg-20250816.xml, round coordinates to 1 decimal, and ship as {kanji: [path,...]}. Animate with stroke-dasharray/stroke-dashoffset. Ship N5+N4 (245 kanji, 65 KB gzip) in the app shell and the rest (1,966 kanji) as a lazy 457 KB brotli file.",
+   "why": "Verified 2,211/2,211 JLPT kanji present in KanjiVG r20250816. Paths-only = 1.90 MB raw / 648 KB brotli; rounding to 1dp drops it to 1.59 MB raw / 457 KB brotli with no visible quality loss at phone sizes.",
+   "priority": "high"
+  },
+  {
+   "title": "Get radicals/components from the SAME KanjiVG file — skip kradfile",
+   "decision": "Parse `kvg:element=\"X\"` and `kvg:radical=\"general\"` attributes out of kanjivg.xml while extracting the paths. Produces {kanji: {c:[components], r:radical}} at 83 KB raw / 21 KB gzip covering 2,211/2,211 kanji (2,146 with sub-components, 1,841 with a marked radical). Build the reverse map (875 distinct components → kanji) for a radical-search screen.",
+   "why": "Measured. 語 → {c:[言,口,吾,五,二], r:言}; 曜 → {c:[日,翟,羽,隹,亻], r:日}. This is a richer, hierarchical decomposition than kradfile (which gives a flat unordered bag) and it comes from a file you are already downloading. kradfile (447 KB) and radkfile (340 KB) are still worth adding only if you want the classic 253-radical lookup grid.",
+   "priority": "high"
+  },
+  {
+   "title": "Word audio: JapanesePod101 CDN, with placeholder detection at build time",
+   "decision": "Use https://assets.languagepod101.com/dictionary/japanese/audiomp3.php?kanji=<enc>&kana=<enc>. At BUILD time, fetch each of the 8,334 words once and record a boolean `hasAudio`; treat any response of exactly 52,288 bytes (md5 7e2c2f954ef6…) as 'no recording' and hide the play button. Store the boolean in the vocab JSON; stream the mp3 from the CDN at runtime (with a service-worker cache-on-play). Do NOT bundle the mp3s.",
+   "why": "Verified: 日本語/にほんご → 200, audio/mpeg, 2,448 B; 猫/ねこ → 1,872 B; 食べる/たべる → 2,760 B; 企業戦士/きぎょうせんし → 8,208 B. Three different nonsense inputs (ぴゃぴゃぴゃ, ずずずずず, ほげほげほげ) ALL returned the identical 52,288-byte file md5 7e2c2f954ef6, confirming the placeholder. Note this CDN is not formally licensed for redistribution — link, don't rehost, and have a TTS fallback (SpeechSynthesis with a ja-JP voice) so the app still works offline.",
+   "priority": "high"
+  },
+  {
+   "title": "Sentence audio: Tatoeba, CC BY 2.0 FR, actually downloadable",
+   "decision": "For example sentences, prefer Tatoeba sentences that have audio. Query https://tatoeba.org/en/api_v0/search?from=jpn&to=eng&query=<word>&limit=10&has_audio=yes at build time, then fetch https://tatoeba.org/en/audio/download/<audioId>. Bundle a small curated set (e.g. 2 sentences × the top 1,000 words) and link the rest.",
+   "why": "Verified: search returned 200 with audios:[{id:221406, author:\"yomi\", download_url:\"/en/audio/download/221406\"}]; fetching that URL returned 200, audio/mpeg, 12,614 bytes, valid MPEG layer III 48kbps. License field on results reads \"CC BY 2.0 FR\" — redistributable with attribution, unlike the jpod101 CDN.",
+   "priority": "high"
+  },
+  {
+   "title": "Pitch accent from kanjium (CC BY-SA 4.0), baked in — no extra file",
+   "decision": "Parse the 124,137-line TSV (word \\t reading \\t comma-separated accent positions) and attach a `p` field to each vocab row. Lookup order: exact word+reading, then word alone, then reading alone. Render as the standard overline/downstep bar over the kana. 17,212 entries carry multiple valid accents — show the first and mark the word as having variants.",
+   "why": "Verified: 3,226,405 bytes, 200 OK, 124,134 unique word|reading keys. Coverage of JLPT vocab with the reading fallback = 8,194/8,334 (98.3%): N5 651/662, N4 613/632, N3 1756/1784, N2 1758/1793, N1 3416/3463. Baking it in costs ~0 extra bytes; the standalone JLPT-only map would be 67 KB gzip and the full map 730 KB brotli. License is explicitly CC BY-SA 4.0 in the README (the GitHub API reports NOASSERTION because there is no LICENSE file at the root — the README is authoritative).",
+   "priority": "high"
+  },
+  {
+   "title": "Fill the 889 missing example sentences from jmdict-examples-eng",
+   "decision": "Download jmdict-examples-eng (14.1 MB zip → 129.3 MB JSON), index its 32,306 Tatoeba-linked examples by every kanji and kana surface form (72,340 surfaces), and backfill OpenJLPT rows that have no examples. This is a build-time-only 129 MB file — never ships.",
+   "why": "Measured: 889 OpenJLPT rows have no `examples` key at all (N5 21, N4 32, N3 17, N2 256, N1 563). jmdict-examples can supply a sentence for 656 of them (N5 19/21, N4 28/32, N3 15/17, N2 199/256, N1 395/563). The remaining 233 are mostly N1 rare nouns — flag them in the UI as 'no example yet' rather than showing an empty card.",
+   "priority": "high"
+  },
+  {
+   "title": "Keep OpenJLPT's own example sentences as the PRIMARY ones — they are unusually beginner-friendly",
+   "decision": "Do not replace OpenJLPT examples with Tatoeba ones wholesale. Use OpenJLPT first, Tatoeba only as backfill.",
+   "why": "Measured: 14,362 examples, 12,196 unique, 0 empty ja, 0 empty en, 0 ja===en, and 7,445/7,445 first-examples actually CONTAIN the headword (100% — I checked). Median length is 11 characters, p90 = 19. Tatoeba sentences are much longer and harder. Only 2,276/12,196 (19%) of OpenJLPT sentences appear in Tatoeba, so they are a genuinely distinct, short, level-appropriate corpus. Minor caveat: a few sentences are reused across up to 7 different words (その内訳は？ appears 7 times).",
+   "priority": "high"
+  },
+  {
+   "title": "Cross-validate kanji levels with davidluzgouveia/kanji-data, and get WaniKani-style radical names from it",
+   "decision": "Fetch kanji-jouyou.json (984,796 bytes, 2,136 jouyou kanji). Use it to (a) confirm OpenJLPT kanji level assignments and (b) pull `wk_level`, `wk_meanings` and `wk_radicals` (English radical names like 'Sun') for friendlier kanji cards. Treat it as supplementary only.",
+   "why": "Verified 200 OK. Its jlpt_new distribution is {5:79, 4:166, 3:367, 2:367, 1:985} — identical to OpenJLPT for N5–N2, confirming both derive from Tanos. OpenJLPT's N1 has 1,232 because it includes 247 non-jouyou kanji. RISK: the GitHub API reports no license for this repo and the wk_* fields are WaniKani-derived, so the radical NAMES may be proprietary. Use the readings/levels freely; treat wk_meanings/wk_radicals as attribution-required-and-possibly-unsafe.",
+   "priority": "nice-to-have"
+  },
+  {
+   "title": "Build kanji→vocab cross-links from JMdict-common, not from the JLPT list",
+   "decision": "For each of the 2,211 kanji, store up to 8 JMdict-common entry indices whose common kanji form contains it. Show them on the kanji detail page as 'words that use this kanji', with a badge if the word is in the user's current JLPT level.",
+   "why": "Measured both options. Using only OpenJLPT vocab covers 1,768/2,211 kanji (median 4 words each) at 32 KB gzip. Using jmdict-common covers 2,017/2,211 (median 9 words each) and capped at 8 per kanji costs only 37 KB gzip. JMdict-common is strictly better for 37 KB.",
+   "priority": "nice-to-have"
+  },
+  {
+   "title": "Add kanjialive ka_data.csv for radical names, positions and example compounds",
+   "decision": "Fetch https://raw.githubusercontent.com/kanjialive/kanji-data-media/master/language-data/ka_data.csv (765,727 bytes, CC BY 4.0). It gives per-kanji: radical char, radical name in Japanese AND romaji, radical MEANING in English, radical position (left/top/enclosing), plus 5–9 curated example compounds with readings and glosses.",
+   "why": "Verified 200 OK and inspected the header. Row for 一 includes rad_name_ja=いち, rad_meaning=\"one, horizontal stroke\", and 9 example compounds like 一年生（いちねんせい）/first-year student. This is the single best openly-licensed source of human-readable radical explanations — kradfile only gives you bare characters. Covers ~1,235 kanji (roughly N5–N3), which is exactly the range where beginners need it. Their media CDN path https://media.kanjialive.com/kanji_audio/ichi.mp3 returned 404, so do NOT rely on their audio without finding the correct pattern.",
+   "priority": "nice-to-have"
+  },
+  {
+   "title": "Skip the Leeds/hingston frequency list and Forvo",
+   "decision": "Do not use hingston/japanese or the Forvo API.",
+   "why": "hingston's 15000-japanese-words.txt (127,231 bytes, 200 OK, CC BY 2.5) is a bare newline-separated word list with NO counts, derived from a 2000s-era web-crawl corpus — its top entries are particles (の, に, は, て, を) and it is strictly worse than JPDB, which is rank-based, covers 278,946 entries, and hits 99.5% of the JLPT list. Forvo's apifree endpoint returned HTTP 400 with the DEMO key; it requires a paid key and forbids caching, which breaks offline-first.",
+   "priority": "nice-to-have"
+  }
+ ],
+ "verified_facts": [
+  {
+   "claim": "All 5 OpenJLPT vocab JSONs download cleanly",
+   "evidence": "HTTP 200 for all: vocab-n5 222,308 B / n4 218,895 B / n3 679,580 B / n2 680,482 B / n1 1,311,444 B. Item counts N5=662, N4=632, N3=1784, N2=1793, N1=3463, total 8,334 — exactly matching the orchestrator's figure.",
+   "works": true
+  },
+  {
+   "claim": "All 5 OpenJLPT kanji JSONs download cleanly; total 2,211 with zero duplicates across levels",
+   "evidence": "HTTP 200: kanji-n5 22,701 B / n4 49,031 B / n3 117,134 B / n2 105,985 B / n1 343,931 B. Counts 79/166/367/367/1232 = 2,211. 2,211 unique characters, 0 appearing in more than one level, 0 non-CJK or multi-char entries.",
+   "works": true
+  },
+  {
+   "claim": "OpenJLPT vocab field completeness: word/reading/meanings/level present on all 8,334; examples missing on 889",
+   "evidence": "Field presence counts: word 8334, reading 8334, meanings 8334, level 8334, examples 7445. Rows with no `examples` key: N5=21, N4=32, N3=17, N2=256, N1=563 (total 889). Zero rows have an empty `examples` array. Zero rows have empty meanings.",
+   "works": true
+  },
+  {
+   "claim": "Example-count breakdown per level",
+   "evidence": "0 examples / 1 example / 2+ examples: N5 21/6/635, N4 32/6/594, N3 17/6/1761, N2 256/162/1375, N1 563/348/2552. Total 14,362 example sentences, 12,196 unique Japanese sentences.",
+   "works": true
+  },
+  {
+   "claim": "CONFIRMED: OpenJLPT leaves `reading` empty exactly for kana-only words",
+   "evidence": "Across all 8,334 rows, the count of words CONTAINING kanji with an empty reading is exactly 0. 1,096 rows have an empty reading and every one of them is kana-only. Empty-reading counts per level: N5=163, N4=141, N3=217, N2=295, N1=280. The converse has 32 exceptions: 32 kana-only words DO have a filled reading (all in N3/N2, e.g. いえ→いえ, but also うん→「（感）」).",
+   "works": true
+  },
+  {
+   "claim": "27 reading fields contain non-kana characters, including one genuine mojibake",
+   "evidence": "Examples found: N3 賛成 reading=\"Uӣ[い\" (mojibake); N3 うん/しまった/すみません/ね/はい/よろしく reading=\"（感）\"; N3 ふと reading=\"（副）\"; N2 だいいち reading=\"（副）\"; N3 とん reading=\"（1000\" (truncated); N5 何 reading=\"なん/なに\"; N5 十 reading=\"じゅう とお\" (space-separated); N2 じゅうたん reading=\"（カーペット）\".",
+   "works": true
+  },
+  {
+   "claim": "20 OpenJLPT words are slash-joined multi-forms that must be split",
+   "evidence": "e.g. N5 「いい/よい」, 「キロ/キログラム」, 「ラジカセ / ラジオカセット」 (with spaces), 「伯父/叔父」[おじいさん], N4 「けれど/けれども」, 「コンピュータ/コンピューター」, 「やはり/やっぱり」, 「レポート/リポート」. Note 「伯父/叔父」 has the WRONG reading attached (おじいさん = grandfather, not おじ = uncle).",
+   "works": true
+  },
+  {
+   "claim": "243 surface forms appear in more than one JLPT level, and many N3 entries are wrong-homophone EDICT lookups",
+   "evidence": "Only 1 exact word|reading duplicate (けれど/けれども in N4 and N2). But 243 words share a surface across levels with different readings/meanings. Clear errors: そこ N5=\"that place\" vs N3[そこ]=\"bottom/sole\" (=底); はい N5=\"yes\" vs N3[（感）]=\"wear/put on (sword)\" (=佩く); どう N5=\"how\" vs N3[（接。副）]=\"child/servant/foolishness\" (=童); ね N3[（感）]=\"value/price/cost\" (=値). Legitimate ones also exist: 悪い N5[わるい] vs N1[にくい], 一昨日 N5[おととい] vs N2[いっさくじつ].",
+   "works": true
+  },
+  {
+   "claim": "No mojibake or Latin characters in any OpenJLPT headword",
+   "evidence": "Scan for U+FFFD or [A-Za-z] in the `word` field across all 8,334 rows returned 0 hits. (The one mojibake is in a `reading` field, not a `word`.)",
+   "works": true
+  },
+  {
+   "claim": "Every OpenJLPT first example sentence actually contains its headword",
+   "evidence": "7,445/7,445 checked — 0 failures. Sentences are short: median 11 chars, p90 19, max 60. A handful are reused across words: 「その内訳は？」 appears 7 times, 「大学生です。」/「先生が来る。」/「土曜日だよ。」/「工業都市です。」 6 times each.",
+   "works": true
+  },
+  {
+   "claim": "jlpt-vocab-api works, paginates via offset, and reports totals that nearly match OpenJLPT",
+   "evidence": "HTTP 200. Response shape {total, offset, limit, words:[{word, meaning, furigana, romaji, level}]}. Totals: N5=662, N4=632, N3=1797, N2=1831, N1=3463 (vs OpenJLPT 662/632/1784/1793/3463 — N3 differs by 13, N2 by 38). offset=100&limit=3 returned the correct 3 rows; offset=660&limit=5 on a 662-row set returned [] (off-by-something bug at the tail). Adds romaji, which OpenJLPT lacks.",
+   "works": true
+  },
+  {
+   "claim": "open-anki-jlpt-decks CSVs download and disagree with OpenJLPT on 8% of shared words",
+   "evidence": "HTTP 200: n1 191,444 B / n2 135,869 B / n3 167,423 B / n4 49,627 B / n5 63,965 B. Parsed rows: N5=718, N4=668, N3=2140, N2=1906, N1=2699 (8,131 rows, 7,896 unique expressions). Overlap with OpenJLPT = 7,141 words; level AGREE 6,567 (92.0%), DISAGREE 574 (8.0%); OpenJLPT-only 948, Anki-only 755. Disagreement examples: うるさい OpenJLPT N3 / Anki N5; 掛ける N4 / N5; パート N4 / N1; スリッパ N5 / N2; お腹 N3 / N5.",
+   "works": true
+  },
+  {
+   "claim": "open-anki-jlpt-decks can fill 921 of OpenJLPT's 1,096 empty readings",
+   "evidence": "Of the 1,096 OpenJLPT rows with an empty `reading`, 921 have a matching expression in the Anki CSVs with a non-empty reading column. (These are all kana-only words where the reading equals the word, so this is a low-value fix — the real use is repairing the 27 corrupt readings.)",
+   "works": true
+  },
+  {
+   "claim": "jmdict-simplified latest release is 3.6.2+20260914172325 with 32 assets",
+   "evidence": "GitHub API 200. Key asset sizes: jmdict-eng-common .zip 1.38 MB, jmdict-eng .zip 10.99 MB, jmdict-examples-eng .zip 13.49 MB, kanjidic2-en .zip 1.20 MB, kradfile .zip 0.10 MB, radkfile .zip 0.13 MB. Download URLs must percent-encode the '+' in the TAG path segment (%2B) but NOT in the filename.",
+   "works": true
+  },
+  {
+   "claim": "jmdict-eng-common: 22,640 entries, 16,507,660 bytes uncompressed",
+   "evidence": "Downloaded 1,442,079 B zip (HTTP 200), unzipped to 16.5 MB. Top-level keys: version, languages, commonOnly, dictDate, dictRevisions, tags (266 tags), words. Entry shape {id, kanji[{common,text,tags}], kana[{common,text,tags,appliesToKanji}], sense[{partOfSpeech, appliesToKanji, appliesToKana, related, antonym, field, dialect, misc, info, languageSource, gloss[{lang,gender,type,text}]}]}. Totals: 26,556 kanji forms (18,211 marked common), 27,598 kana forms, 37,143 senses, 87,488 glosses.",
+   "works": true
+  },
+  {
+   "claim": "Compacted jmdict-eng-common is 1.95 MB raw / 770 KB gzip / 560 KB brotli",
+   "evidence": "Built [id, kanjiForms.join('|'), kanaForms.join('|'), [[pos, glosses.join('; '), misc?]]] capped at 3 senses / 4 glosses / 3 forms. 22,640 entries. Surface→index map: 38,899 keys, 0.53 MB raw / 250 KB gzip. Sharded by firstCodePoint%64: 64 shards, 2.22 MB raw total, 0.83 MB gzip total, largest shard 25 KB gzip.",
+   "works": true
+  },
+  {
+   "claim": "Full jmdict-eng is 117,917,570 bytes uncompressed; compacts to 16.31 MB raw / 4.81 MB brotli with 218,776 entries",
+   "evidence": "Downloaded 11,519,548 B zip (HTTP 200). Same compaction: 218,776 entries, 16.31 MB raw / 7.05 MB gzip / 4.81 MB brotli. Surface index: 369,345 keys, 6.01 MB raw / 3.03 MB gzip. Sharded x64: 20.06 MB raw total, 7.17 MB gzip total, LARGEST SHARD 195 KB gzip — i.e. any single rare-word lookup needs at most a 195 KB fetch.",
+   "works": true
+  },
+  {
+   "claim": "jmdict-examples-eng contains 32,306 Tatoeba-linked example sentences and can fill 656 of the 889 missing-example rows",
+   "evidence": "Downloaded 14,142,645 B zip (HTTP 200), unzipped to 129,287,388 B. 218,776 entries, 31,748 senses carry examples, 32,306 examples total. Example shape {source:{type:'tatoeba',value:id}, text:'<the headword form>', sentences:[{lang:'jpn',text},{lang:'eng',text}]}. Indexed by all surface forms → 72,340 keys. Backfill rate for OpenJLPT's example-less rows: N5 19/21, N4 28/32, N3 15/17, N2 199/256, N1 395/563 = 656/889.",
+   "works": true
+  },
+  {
+   "claim": "kanjidic2-en downloads: 14,830,710 B uncompressed, 10,384 characters, includes a jlptLevel field (OLD 4-level scale)",
+   "evidence": "HTTP 200, 1,253,440 B zip. Shape {version, languages, dictDate, fileVersion, databaseVersion, characters[{literal, codepoints, radicals, misc:{grade, strokeCounts, variants, frequency, radicalNames, jlptLevel}, dictionaryReferences[...30+ incl. heisig/henshall/nelson], queryCodes, readingMeaning}]}. NOTE misc.jlptLevel for 日 is 4 — that is the OLD pre-2010 4-level scale, NOT N4. Do not use it for level assignment.",
+   "works": true
+  },
+  {
+   "claim": "kradfile and radkfile download and parse",
+   "evidence": "HTTP 200: kradfile zip 106,080 B → 447,522 B JSON with 12,156 kanji, shape {kanji:{'亜':['｜','一','口']}}. radkfile zip 134,219 B → 339,960 B JSON with 253 radicals, shape {radicals:{'一':{strokeCount:1, code:null, kanji:[...]}}}.",
+   "works": true
+  },
+  {
+   "claim": "JPDB v2.2 frequency list downloads and covers 99.5% of JLPT vocab",
+   "evidence": "https://raw.githubusercontent.com/Kuuuube/yomitan-dictionaries/main/dictionaries/JPDB_v2.2_Frequency_2024-10-13.zip → HTTP 200, 5,220,344 B. Contains index.json (frequencyMode:'rank-based', title 'JPDBv2') + term_meta_bank_1.json at 24,824,253 B with 278,946 rows, 274,218 unique surface keys. Row shape is ['の','freq',{value:1,displayValue:'1'}] with a second variant {reading, frequency:{value}}. JLPT coverage 8,294/8,334: N5 656/662, N4 625/632, N3 1779/1784, N2 1781/1793, N1 3453/3463. Median rank per level: N5=1625 (p10 166, p90 13074), N4=2276, N3=3074, N2=12724, N1=12325.",
+   "works": true
+  },
+  {
+   "claim": "A top-60,000 frequency-ordered word list is 256 KB brotli standalone — but you don't even need it separately",
+   "evidence": "top-60k as a {word:rank} map = 0.68 MB raw / 469 KB gzip. As a newline-ordered list (rank = line index) = 0.24 MB raw / 301 KB gzip / 256 KB brotli. Since only 8,334 words need a rank, baking `f` into the vocab JSON costs ~0 extra bytes.",
+   "works": true
+  },
+  {
+   "claim": "hingston/japanese frequency list exists but is low quality",
+   "evidence": "Repo contents API 200. Files: 15000-japanese-words.txt 127,231 B, 44492-japanese-words-latin-lines-removed.txt 415,111 B, 44998-japanese-words.txt 418,820 B. NOTE the orchestrator-era URL '44998-japanese-words-latin-lines-removed.txt' returns 404 — the real filename is 44492. Downloaded the 15k file: 15,000 lines, bare words, no counts, starts の に は て を. License: CC BY 2.5, derived from University of Leeds internet-jp corpus.",
+   "works": true
+  },
+  {
+   "claim": "kanjium pitch accent downloads (3,226,405 B) and covers 98.3% of JLPT vocab",
+   "evidence": "HTTP 200, 124,137 lines, 124,134 unique word|reading keys, 17,212 entries with multiple accent positions. TSV format: word \\t reading \\t comma-separated mora positions (e.g. １\\tいち\\t2; １\\tひと\\t0,2). Coverage with word→reading fallback: 8,194/8,334 = N5 651/662, N4 613/632, N3 1756/1784, N2 1758/1793, N1 3416/3463. Standalone JLPT-only map 108 KB raw / 67 KB gzip; full map 1.84 MB raw / 950 KB gzip / 730 KB brotli.",
+   "works": true
+  },
+  {
+   "claim": "kanjium is CC BY-SA 4.0 despite the GitHub API reporting NOASSERTION",
+   "evidence": "README.md fetched: 'Everything* in this package is licensed under the Creative Commons Attribution-ShareAlike 4.0 International license... You are free to use or modify the data however you like (for commercial or non-commercial purposes).' Required attribution string is given verbatim in the README. README also CONFIRMS 'JLPT data for words comes from Jonathan Waller (http://www.tanos.co.uk/)' — the same Tanos source OpenJLPT uses. GitHub API: license NOASSERTION, 348 stars, last push 2024-06-16.",
+   "works": true
+  },
+  {
+   "claim": "KanjiVG r20250816 covers 2,211/2,211 JLPT kanji; paths compress to 457 KB brotli",
+   "evidence": "kanjivg-20250816.xml.gz downloaded 3,608,178 B (HTTP 200), gunzipped to 13,761,764 B. Extracted all d= path strings for the 2,211 JLPT kanji: FOUND 2211/2211. Paths-only JSON 1.90 MB raw / 764 KB gzip / 648 KB brotli. With coordinates rounded to 1 decimal: 1.59 MB raw / 560 KB gzip / 457 KB brotli. N5+N4 subset (245 kanji) = 65 KB gzip. Also verified a single SVG loads from jsDelivr: https://cdn.jsdelivr.net/gh/KanjiVG/kanjivg@master/kanji/065e5.svg → 200, 2,407 B, image/svg+xml.",
+   "works": true
+  },
+  {
+   "claim": "KanjiVG also carries component decomposition — 2,211/2,211 JLPT kanji, 21 KB gzip",
+   "evidence": "Parsed kvg:element and kvg:radical='general' attributes. 2,211/2,211 kanji present; 2,146 have at least one sub-component; 1,841 have a marked general radical; 875 distinct components used overall. 語 → {c:['言','口','吾','五','二'], r:'言'}; 曜 → {c:['日','翟','羽','隹','亻'], r:'日'}. Full map 83 KB raw / 21 KB gzip.",
+   "works": true
+  },
+  {
+   "claim": "JapanesePod101 word audio works, and its 'missing' placeholder is exactly 52,288 bytes",
+   "evidence": "https://assets.languagepod101.com/dictionary/japanese/audiomp3.php?kanji=<enc>&kana=<enc>. Real words: 日本語/にほんご 200 audio/mpeg 2,448 B (MPEG ADTS layer III v2 64kbps 24kHz mono); 猫/ねこ 1,872 B; 食べる/たべる 2,760 B; 会議/かいぎ 2,448 B; 企業戦士/きぎょうせんし 8,208 B — all distinct md5s. Nonsense inputs ぴゃぴゃぴゃ, ずずずずず, ほげほげほげ ALL returned 52,288 B with the identical md5 prefix 7e2c2f954ef6. The kana-only form (?kana=ねこ alone, no kanji param) returned the 52,288 B placeholder — so you MUST send both kanji and kana params for kanji words.",
+   "works": true
+  },
+  {
+   "claim": "Tatoeba search API and audio download both work; audio is CC BY 2.0 FR",
+   "evidence": "https://tatoeba.org/en/api_v0/search?from=jpn&to=eng&query=猫&limit=10&has_audio=yes → 200, 12,775 B. Results carry license:'CC BY 2.0 FR' and audios:[{id:221406, source:'tatoeba', author:'yomi', download_url:'/en/audio/download/221406'}]. Fetching https://tatoeba.org/en/audio/download/221406 → 200, audio/mpeg, 12,614 B, valid 'Audio file with ID3 v2.4.0, MPEG ADTS layer III v1 48kbps 32kHz mono'. Paging metadata present: {count:1000, pageCount:334, nextPage:true}.",
+   "works": true
+  },
+  {
+   "claim": "Tatoeba bulk exports: jpn sentences 3.4 MB, audio index 6.4 MB, jpn-eng links 1.45 MB, jpn_indices 2.9 MB",
+   "evidence": "Content-Length via HEAD, all 200: per_language/jpn/jpn_sentences.tsv.bz2 = 3,417,672 B; exports/sentences_with_audio.tar.bz2 = 6,376,599 B; per_language/jpn/jpn-eng_links.tsv.bz2 = 1,454,926 B; exports/jpn_indices.tar.bz2 = 2,862,055 B. NOTE per_language/jpn/jpn-eng/jpn-eng.tsv.bz2 is 404 — the links file lives one directory up as jpn-eng_links.tsv.bz2. Also exports/sentences_CC0.tsv.bz2 is 404.",
+   "works": true
+  },
+  {
+   "claim": "Tatoeba jpn_indices gives pre-segmented, lemma-annotated Japanese for 148,826 sentences",
+   "evidence": "Extracted to jpn_indices.csv, 17,434,241 B, 150,076 rows, 148,826 indexed sentence ids. Format: jpnId \\t engId \\t annotated text where each token is lemma(disambig)[senseNo]{surfaceForm}, e.g. '直ぐに{すぐに} 諦める{諦めて} 昼寝 を 為る(する){する} かも知れない'. This is free word segmentation + lemma for the Tanaka corpus.",
+   "works": true
+  },
+  {
+   "claim": "Only 19% of OpenJLPT example sentences come from Tatoeba — they are a distinct short corpus",
+   "evidence": "Of 12,196 unique OpenJLPT Japanese example sentences, only 2,276 also appear in jmdict-examples' Tatoeba set. Median length 11 chars vs Tatoeba's much longer sentences.",
+   "works": true
+  },
+  {
+   "claim": "kuromoji (npm) installs on Node 24 and tokenizes correctly with lemma + reading",
+   "evidence": "npm install kuromoji → 'added 5 packages' in 49s, 0 vulnerabilities. Tokenizing 今日は会議があるので、早めに会社へ行きます。 gave: 今日/名詞/今日/キョウ | は/助詞/は/ハ | 会議/名詞/会議/カイギ | が/助詞 | ある/動詞/ある/アル | ので/助詞 | 、/記号 | 早め/名詞/早め/ハヤメ | に/助詞 | 会社/名詞/会社/カイシャ | へ/助詞 | 行き/動詞/行く/イキ | ます/助動詞 | 。/記号. Correct lemma recovery (行き→行く) and katakana readings for furigana.",
+   "works": true
+  },
+  {
+   "claim": "kuromoji is fast enough for build-time processing of the entire corpus",
+   "evidence": "Dictionary load 3,864 ms (one-time). Tokenized all 14,362 OpenJLPT example sentences into 111,238 tokens in 3,177 ms = 4,521 sentences/sec. Resulting token data: 1.74 MB raw / 482 KB gzip / 246 KB brotli as [surface, lemma, reading] triples; 243 KB gzip as delimiter-packed strings.",
+   "works": true
+  },
+  {
+   "claim": "END-TO-END MERGE PROVEN: all five levels, fully enriched, = 3.08 MB raw / 812 KB brotli",
+   "evidence": "Ran a real merge (OpenJLPT + Anki readings + kuromoji reading fallback + JPDB rank + kanjium pitch + tokenized examples), frequency-sorted. Per file: vocab-n5 662 items 205 KB raw / 66 KB gzip / 51 KB brotli; n4 632 items 209/71/55; n3 1784 items 651/227/160; n2 1793 items 720/272/194; n1 3463 items 1371/520/351. 19 corrupt readings auto-repaired. N5 residual gaps after merge: 11 without pitch, 5 without frequency, 0 without reading. First two N5 entries by frequency: する (rank 11, pitch 0) and ある (rank 14, pitch 1).",
+   "works": true
+  },
+  {
+   "claim": "davidluzgouveia/kanji-data cross-validates OpenJLPT's kanji levels exactly, and adds WaniKani fields",
+   "evidence": "kanji-jouyou.json HTTP 200, 984,796 B, 2,136 kanji, 1,964 with jlpt_new. Distribution {5:79, 4:166, 3:367, 2:367, 1:985, null:172} — identical to OpenJLPT for N5/N4/N3/N2. Entry for 日 includes strokes, grade, freq, jlpt_old:4, jlpt_new:5, meanings, readings_on/kun, wk_level:2, wk_meanings, wk_radicals:['Sun']. The larger kanji.json is 5,508,152 B. GitHub API reports NO license for this repo.",
+   "works": true
+  },
+  {
+   "claim": "Kanji Alive ka_data.csv is available (CC BY 4.0) with radical meanings and curated compounds",
+   "evidence": "https://raw.githubusercontent.com/kanjialive/kanji-data-media/master/language-data/ka_data.csv → 200, 765,727 B. Columns: kanji,kname,kstroke,kmeaning,kgrade,kunyomi_ja,kunyomi,onyomi_ja,onyomi,examples,radical,rad_order,rad_stroke,rad_name_ja,rad_name,rad_meaning,rad_position_ja,rad_position. Row for 一 has rad_meaning='one, horizontal stroke' and 9 example compounds with readings+glosses. Their /language-data/radicals.csv is 404, and their media CDN sample https://media.kanjialive.com/kanji_audio/ichi.mp3 returned 404 text/html.",
+   "works": false
+  },
+  {
+   "claim": "Forvo API is not usable without a paid key",
+   "evidence": "https://apifree.forvo.com/key/DEMO/format/json/action/word-pronunciations/word/konnichiwa/language/ja → HTTP 400.",
+   "works": false
+  },
+  {
+   "claim": "OpenJLPT kanji `freq` is the KANJIDIC newspaper frequency rank (1–2501), null for rare kanji",
+   "evidence": "Per-level ranges: N5 1–950 (79/79 present), N4 4–1487, N3 17–1725, N2 39–2209, N1 84–2495 with 105 of 1,232 N1 kanji having null freq. Missing kunyomi is common in N1 (264/1232) and N2 (64/367); missing onyomi is rare (7 in N1, 1 in N3). Zero entries lack meanings, grade, or stroke count.",
+   "works": true
+  }
+ ],
+ "code_or_data": "### 1. DEFINITIVE DOWNLOAD LIST (all HTTP 200, verified this session)\n\n| # | URL | Compressed | Uncompressed | License | Ship? |\n|---|-----|-----------|--------------|---------|-------|\n| 1 | https://raw.githubusercontent.com/evanclan/OpenJLPT/main/data/json/vocab/n{5,4,3,2,1}.json | 222K/219K/680K/680K/1.31M | same | CC-BY-SA 4.0 | build-time spine |\n| 2 | https://raw.githubusercontent.com/evanclan/OpenJLPT/main/data/json/kanji/n{5,4,3,2,1}.json | 23K/49K/117K/106K/344K | same | CC-BY-SA 4.0 | build-time spine |\n| 3 | https://raw.githubusercontent.com/jamsinclair/open-anki-jlpt-decks/main/src/n{1..5}.csv | 191K/136K/167K/50K/64K | same | see repo | build-time repair |\n| 4 | https://github.com/scriptin/jmdict-simplified/releases/download/3.6.2%2B20260914172325/jmdict-eng-common-3.6.2+20260914172325.json.zip | 1,442,079 B | 16,507,660 B | CC-BY-SA 4.0 (EDRDG) | SHIP compacted |\n| 5 | ...same tag.../jmdict-eng-3.6.2+20260914172325.json.zip | 11,519,548 B | 117,917,570 B | CC-BY-SA 4.0 | SHIP sharded/lazy |\n| 6 | ...same tag.../jmdict-examples-eng-3.6.2+20260914172325.json.zip | 14,142,645 B | 129,287,388 B | CC-BY-SA 4.0 | build-time only |\n| 7 | ...same tag.../kanjidic2-en-3.6.2+20260914172325.json.zip | 1,253,440 B | 14,830,710 B | CC-BY-SA 4.0 | build-time only |\n| 8 | ...same tag.../kradfile...json.zip / radkfile...json.zip | 106,080 / 134,219 B | 447,522 / 339,960 B | EDRDG | optional |\n| 9 | https://raw.githubusercontent.com/Kuuuube/yomitan-dictionaries/main/dictionaries/JPDB_v2.2_Frequency_2024-10-13.zip | 5,220,344 B | 24,824,253 B | see repo | build-time only |\n| 10 | https://raw.githubusercontent.com/mifunetoshiro/kanjium/master/data/source_files/raw/accents.txt | 3,226,405 B | same | CC-BY-SA 4.0 | build-time only |\n| 11 | https://github.com/KanjiVG/kanjivg/releases/download/r20250816/kanjivg-20250816.xml.gz | 3,608,178 B | 13,761,764 B | CC-BY-SA 3.0 | SHIP extracted |\n| 12 | https://raw.githubusercontent.com/kanjialive/kanji-data-media/master/language-data/ka_data.csv | 765,727 B | same | CC-BY 4.0 | build-time only |\n| 13 | https://raw.githubusercontent.com/davidluzgouveia/kanji-data/master/kanji-jouyou.json | 984,796 B | same | UNLICENSED (risk) | validation only |\n| 14 | https://downloads.tatoeba.org/exports/per_language/jpn/jpn_sentences.tsv.bz2 | 3,417,672 B | — | CC-BY 2.0 FR | optional |\n| 15 | https://downloads.tatoeba.org/exports/per_language/jpn/jpn-eng_links.tsv.bz2 | 1,454,926 B | — | CC-BY 2.0 FR | optional |\n| 16 | https://downloads.tatoeba.org/exports/jpn_indices.tar.bz2 | 2,862,055 B | 17,434,241 B | CC-BY 2.0 FR | optional |\n| 17 | https://downloads.tatoeba.org/exports/sentences_with_audio.tar.bz2 | 6,376,599 B | — | CC-BY 2.0 FR | optional |\n\nRuntime (online-only, never required): \n- word audio `https://assets.languagepod101.com/dictionary/japanese/audiomp3.php?kanji=<enc>&kana=<enc>` (52,288 B == no recording)\n- sentence audio `https://tatoeba.org/en/audio/download/<audioId>` (CC-BY 2.0 FR)\n- `https://jisho.org/api/v1/search/words?keyword=<enc>`\n\n### 2. SHIPPED PAYLOAD BUDGET (all measured, brotli q11)\n\n```\napp shell (html/css/js)                      ~80 KB\ndata/vocab/n5.json                            51 KB   <- 662 words, loads instantly\ndata/vocab/n4.json                            55 KB\ndata/vocab/n3.json                           160 KB\ndata/vocab/n2.json                           194 KB\ndata/vocab/n1.json                           351 KB\ndata/kanji/all.json  (2211 enriched)        ~120 KB\ndata/kanji/strokes-n5n4.json (245)            65 KB   (gzip)\ndata/kanji/strokes-rest.json (1966)          457 KB   lazy\ndata/kanji/components.json (2211)             21 KB   (gzip)\ndata/dict/common.json (22,640 entries)       560 KB   lazy, cached forever\ndata/dict/index.json (38,899 keys)           250 KB   (gzip) lazy\ndata/dict/shards/NN.json (64 x rare words)   195 KB   max per shard, on demand\n------------------------------------------------------------\nfirst paint + N5 fully usable offline       ~130 KB\neverything except rare-word shards          ~2.4 MB\n```\n\n### 3. NODE BUILD SCRIPT (this is a working sketch — every step below ran successfully)\n\n```js\n// build/build-data.mjs   —   node --max-old-space-size=8192 build/build-data.mjs\n// deps: npm i kuromoji   (only build-time dep; nothing ships to the browser)\nimport fs from 'node:fs';\nimport fsp from 'node:fs/promises';\nimport path from 'node:path';\nimport zlib from 'node:zlib';\nimport { execFileSync } from 'node:child_process';\nimport kuromoji from 'kuromoji';\n\nconst JM_TAG   = '3.6.2+20260914172325';\nconst JM_TAGQ  = encodeURIComponent(JM_TAG);            // '+' -> %2B in the TAG segment only\nconst JM_REL   = `https://github.com/scriptin/jmdict-simplified/releases/download/${JM_TAGQ}`;\nconst KVG_TAG  = 'r20250816';\nconst CACHE    = 'build/.cache';\nconst OUT      = 'app/data';\nconst LEVELS   = [5, 4, 3, 2, 1];\n\n// ---------------------------------------------------------------- fetch+cache\nasync function grab(url, name) {\n  const dst = path.join(CACHE, name);\n  if (fs.existsSync(dst)) return dst;\n  await fsp.mkdir(CACHE, { recursive: true });\n  const r = await fetch(url, { redirect: 'follow' });\n  if (!r.ok) throw new Error(`${r.status} ${url}`);\n  await fsp.writeFile(dst, Buffer.from(await r.arrayBuffer()));\n  console.log(`  fetched ${name} (${fs.statSync(dst).size} B)`);\n  return dst;\n}\nconst unzipTo = (zip, dir) => { execFileSync('unzip', ['-o', '-q', zip, '-d', dir]); return dir; };\nconst readJSON = f => JSON.parse(fs.readFileSync(f, 'utf8'));\n\n// --------------------------------------------------------------- tiny CSV rdr\nfunction csv(text) {\n  const rows = []; let f = '', row = [], q = false;\n  for (let i = 0; i < text.length; i++) { const c = text[i];\n    if (q) { if (c === '\"') { if (text[i+1] === '\"') { f += '\"'; i++; } else q = false; } else f += c; }\n    else if (c === '\"') q = true;\n    else if (c === ',') { row.push(f); f = ''; }\n    else if (c === '\\n') { row.push(f); f = ''; rows.push(row); row = []; }\n    else if (c !== '\\r') f += c;\n  }\n  if (f || row.length) { row.push(f); rows.push(row); }\n  return rows;\n}\n\nconst KANA_ONLY = /^[぀-ゟ゠-ヿーー・]+$/;\nconst NON_KANA  = /[^぀-ゟ゠-ヿーー・]/;\nconst kata2hira = s => s.replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));\n\n// ================================================================ MAIN\nconst tokenizer = await new Promise((res, rej) =>\n  kuromoji.builder({ dicPath: './node_modules/kuromoji/dict' })\n          .build((e, t) => e ? rej(e) : res(t)));       // ~3.9 s, one time\n\n// ---- 1. sources -------------------------------------------------------------\nconst vocabRaw = {}, kanjiRaw = {};\nfor (const L of LEVELS) {\n  vocabRaw[L] = readJSON(await grab(\n    `https://raw.githubusercontent.com/evanclan/OpenJLPT/main/data/json/vocab/n${L}.json`, `vocab-n${L}.json`));\n  kanjiRaw[L] = readJSON(await grab(\n    `https://raw.githubusercontent.com/evanclan/OpenJLPT/main/data/json/kanji/n${L}.json`, `kanji-n${L}.json`));\n}\n\n// ---- 2. JPDB frequency ranks  (8294/8334 coverage) --------------------------\nunzipTo(await grab(\n  'https://raw.githubusercontent.com/Kuuuube/yomitan-dictionaries/main/dictionaries/JPDB_v2.2_Frequency_2024-10-13.zip',\n  'jpdb.zip'), `${CACHE}/jpdb`);\nconst rank = new Map();\nfor (const [term, , v] of readJSON(`${CACHE}/jpdb/term_meta_bank_1.json`)) {\n  const n = v?.value ?? v?.frequency?.value;            // two shapes exist in this file\n  if (n != null && !rank.has(term)) rank.set(term, n);\n}\n\n// ---- 3. kanjium pitch accent  (8194/8334 coverage) --------------------------\nconst pitchByWord = new Map(), pitchByRead = new Map();\nfor (const line of fs.readFileSync(await grab(\n      'https://raw.githubusercontent.com/mifunetoshiro/kanjium/master/data/source_files/raw/accents.txt',\n      'accents.txt'), 'utf8').split('\\n')) {\n  const [w, r, a] = line.split('\\t'); if (!w) continue;\n  (pitchByWord.get(w) ?? pitchByWord.set(w, []).get(w)).push([r, a]);\n  if (r) (pitchByRead.get(r) ?? pitchByRead.set(r, []).get(r)).push([w, a]);\n}\n\n// ---- 4. Anki decks: reading repair + a level-disagreement report ------------\nconst ankiRead = new Map(), ankiLevel = new Map();\nfor (const L of LEVELS) {\n  const rows = csv(fs.readFileSync(await grab(\n    `https://raw.githubusercontent.com/jamsinclair/open-anki-jlpt-decks/main/src/n${L}.csv`, `anki-n${L}.csv`), 'utf8'));\n  rows.shift();\n  for (const r of rows) { if (!r[0]) continue; if (r[1]) ankiRead.set(r[0], r[1]); ankiLevel.set(r[0], L); }\n}\n\n// ---- 5. jmdict-examples -> backfill the 889 example-less rows (656 fillable)\nunzipTo(await grab(`${JM_REL}/jmdict-examples-eng-${JM_TAG}.json.zip`, 'jmdict-examples.zip'), CACHE);\nconst exBySurface = new Map();\nfor (const w of readJSON(`${CACHE}/jmdict-examples-eng-3.6.2.json`).words) {\n  const forms = [...w.kanji.map(k => k.text), ...w.kana.map(k => k.text)];\n  for (const s of w.sense) for (const e of s.examples ?? []) {\n    const ja = e.sentences.find(x => x.lang === 'jpn')?.text;\n    const en = e.sentences.find(x => x.lang === 'eng')?.text;\n    if (!ja || !en) continue;\n    for (const f of forms) {\n      const a = exBySurface.get(f) ?? exBySurface.set(f, []).get(f);\n      if (a.length < 3) a.push({ ja, en });\n    }\n  }\n}\n\n// ---- 6. normalise + enrich + sort ------------------------------------------\nconst tok = s => tokenizer.tokenize(s).map(t => [\n  t.surface_form,\n  (t.basic_form && t.basic_form !== '*' && t.basic_form !== t.surface_form) ? t.basic_form : 0,\n  t.reading ? kata2hira(t.reading) : 0,                 // hiragana, ready for <ruby>\n]);\n\nconst report = { badReading: [], crossLevel: [], noExample: [], levelDisagree: [] };\nconst seenWord = new Map();\n\nfor (const L of LEVELS) {\n  const out = [];\n  for (const w of vocabRaw[L]) {\n    // (a) split the 20 slash-joined multi-form headwords\n    const forms = w.word.split(/\\s*[\\/／]\\s*/).map(s => s.trim()).filter(Boolean);\n    const word = forms[0], alt = forms.slice(1);\n\n    // (b) repair the 27 corrupt readings: 「（感）」 / 「なん/なに」 / 「Uӣ[い」\n    let reading = (w.reading ?? '').trim();\n    if (reading && NON_KANA.test(reading)) {\n      report.badReading.push({ level: L, word, raw: reading });\n      reading = reading.split(/[\\/／\\s、]/)[0].trim();\n      if (NON_KANA.test(reading)) reading = ankiRead.get(word) ?? '';\n    }\n    // (c) OpenJLPT rule: reading is empty IFF the word is kana-only (verified 0 exceptions)\n    if (!reading) reading = KANA_ONLY.test(word)\n      ? word\n      : (ankiRead.get(word) ?? kata2hira(tokenizer.tokenize(word).map(t => t.reading ?? t.surface_form).join('')));\n\n    // (d) flag the 243 cross-level collisions instead of silently merging them\n    const prev = seenWord.get(word);\n    if (prev) report.crossLevel.push({ word, a: prev, b: { level: L, reading, meanings: w.meanings } });\n    else seenWord.set(word, { level: L, reading, meanings: w.meanings });\n\n    if (ankiLevel.has(word) && ankiLevel.get(word) !== L)\n      report.levelDisagree.push({ word, openjlpt: L, anki: ankiLevel.get(word) });\n\n    // (e) pitch: word+reading -> word -> reading\n    let pitch = null;\n    const cw = pitchByWord.get(word);\n    if (cw) pitch = (cw.find(x => x[0] === reading) ?? cw[0])[1];\n    if (pitch == null && pitchByRead.has(reading)) pitch = pitchByRead.get(reading)[0][1];\n\n    // (f) examples: OpenJLPT first (median 11 chars, 100% contain the headword), then backfill\n    let exs = (w.examples ?? []).slice(0, 2);\n    if (!exs.length) {\n      exs = (exBySurface.get(word) ?? exBySurface.get(reading) ?? []).slice(0, 2);\n      if (!exs.length) report.noExample.push({ level: L, word });\n    }\n\n    out.push({\n      w: word, alt, r: reading, m: w.meanings,\n      f: rank.get(word) ?? rank.get(reading) ?? null,   // JPDB rank\n      p: pitch,                                          // '0' | '1' | '2,4' | null\n      ex: exs.map(e => ({ j: e.ja, e: e.en, t: tok(e.ja) })),\n    });\n  }\n  out.sort((a, b) => (a.f ?? 9e5) - (b.f ?? 9e5));       // MOST USEFUL FIRST\n  writeOut(`vocab/n${L}.json`, out);\n}\n\n// ---- 7. kanji: OpenJLPT + KanjiVG strokes + KanjiVG components -------------\nconst kvgGz  = await grab(`https://github.com/KanjiVG/kanjivg/releases/download/${KVG_TAG}/kanjivg-${KVG_TAG.slice(1)}.xml.gz`, 'kanjivg.xml.gz');\nconst kvgXml = zlib.gunzipSync(fs.readFileSync(kvgGz)).toString('utf8');\nconst strokes = {}, comps = {};\nfor (const m of kvgXml.matchAll(/<kanji id=\"kvg:kanji_([0-9a-f]+)\">([\\s\\S]*?)<\\/kanji>/g)) {\n  const ch = String.fromCodePoint(parseInt(m[1].split('-')[0], 16));\n  if (strokes[ch]) continue;\n  strokes[ch] = [...m[2].matchAll(/ d=\"([^\"]+)\"/g)]\n    .map(x => x[1].replace(/-?\\d+\\.\\d+/g, n => (+n).toFixed(1)));   // 1.90MB -> 1.59MB\n  const els = [...new Set([...m[2].matchAll(/kvg:element=\"([^\"]+)\"/g)].map(x => x[1]))].filter(x => x !== ch);\n  const rad = m[2].match(/kvg:element=\"([^\"]+)\"[^>]*kvg:radical=\"general\"/)?.[1] ?? null;\n  comps[ch] = { c: els, r: rad };\n}\nconst kanjiOut = [];\nfor (const L of LEVELS) for (const c of kanjiRaw[L]) {\n  kanjiOut.push({ k: c.character, l: L, s: c.strokes, g: c.grade, f: c.freq,\n                  on: c.onyomi, kun: c.kunyomi, m: c.meanings, cp: comps[c.character]?.c ?? [], rad: comps[c.character]?.r ?? null });\n}\nkanjiOut.sort((a, b) => (a.f ?? 9e4) - (b.f ?? 9e4));\nwriteOut('kanji/all.json', kanjiOut);\nconst n54 = new Set(kanjiOut.filter(k => k.l >= 4).map(k => k.k));\nwriteOut('kanji/strokes-core.json', Object.fromEntries(Object.entries(strokes).filter(([k]) => n54.has(k))));\nwriteOut('kanji/strokes-rest.json', Object.fromEntries(\n  kanjiOut.filter(k => !n54.has(k.k)).map(k => [k.k, strokes[k.k]])));\n\n// ---- 8. tap-a-word dictionary: jmdict-eng-common compacted -----------------\nunzipTo(await grab(`${JM_REL}/jmdict-eng-common-${JM_TAG}.json.zip`, 'jmdict-common.zip'), CACHE);\nconst POS = { v5u:'v5',v5k:'v5',v5s:'v5',v5t:'v5',v5n:'v5',v5b:'v5',v5m:'v5',v5r:'v5','vs-i':'vs' };\nconst dict = [], surfaceIdx = {};\nfor (const w of readJSON(`${CACHE}/jmdict-eng-common-3.6.2.json`).words) {\n  const kj = (w.kanji.filter(x => x.common).length ? w.kanji.filter(x => x.common) : w.kanji).slice(0,3).map(x => x.text);\n  const kn = (w.kana .filter(x => x.common).length ? w.kana .filter(x => x.common) : w.kana ).slice(0,3).map(x => x.text);\n  const senses = w.sense.slice(0,3).map(s => [\n    [...new Set(s.partOfSpeech.map(p => POS[p] ?? p))].slice(0,2).join(','),\n    s.gloss.slice(0,4).map(g => g.text).join('; '),\n    ...(s.misc[0] ? [s.misc[0]] : []),\n  ]);\n  const i = dict.push([w.id, kj.join('|'), kn.join('|'), senses]) - 1;\n  for (const s of [...kj, ...kn]) (surfaceIdx[s] ??= []).push(i);\n}\nwriteOut('dict/common.json', dict);        // measured 1.95 MB raw / 560 KB br\nwriteOut('dict/index.json',  surfaceIdx);  // measured 0.53 MB raw / 250 KB gz\n// optional: same loop over jmdict-eng, then shard by cp % 64 (largest shard 195 KB gz)\n\nfs.writeFileSync('build/data-report.json', JSON.stringify(report, null, 2));\nconsole.log(`report: ${report.badReading.length} bad readings, ${report.crossLevel.length} cross-level collisions, ` +\n            `${report.noExample.length} still without an example, ${report.levelDisagree.length} level disagreements`);\n\n// ---------------------------------------------------------------- write+compress\nfunction writeOut(rel, obj) {\n  const p = path.join(OUT, rel);\n  fs.mkdirSync(path.dirname(p), { recursive: true });\n  const buf = Buffer.from(JSON.stringify(obj));\n  fs.writeFileSync(p, buf);\n  fs.writeFileSync(p + '.br', zlib.brotliCompressSync(buf,\n    { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 11 } }));   // serve .br if the host supports it\n  fs.writeFileSync(p + '.gz', zlib.gzipSync(buf, { level: 9 }));\n  console.log(`  ${rel}  ${(buf.length/1024)|0}KB raw`);\n}\n```\n\n### 4. RUNTIME SNIPPET — tap-a-word on a pre-tokenized sentence\n\n```js\n// ex.t is [[surface, lemma|0, hiraganaReading|0], ...] baked at build time.\nfunction renderSentence(ex, { furigana }) {\n  const frag = document.createDocumentFragment();\n  for (const [surface, lemma, reading] of ex.t) {\n    const el = document.createElement('span');\n    el.className = 'tk';\n    if (furigana && reading && reading !== surface && /[一-鿿]/.test(surface)) {\n      const ruby = document.createElement('ruby');\n      ruby.append(surface, Object.assign(document.createElement('rt'), { textContent: reading }));\n      el.append(ruby);\n    } else el.textContent = surface;\n    el.dataset.q = (lemma || surface);          // the JMdict lookup key\n    frag.append(el);\n  }\n  return frag;\n}\n// one delegated listener on the container:\ncontainer.addEventListener('click', e => {\n  const t = e.target.closest('.tk'); if (!t) return;\n  player?.pause();                              // pause the video on tap\n  openWordSheet(t.dataset.q);                   // -> dict/index.json -> dict/common.json\n});\n```\n\n### 5. jpod101 audio with placeholder detection (build-time probe)\n\n```js\nconst JPOD_PLACEHOLDER_BYTES = 52288;   // verified: identical md5 7e2c2f954ef6 for 3 nonsense inputs\nasync function hasJpodAudio(word, reading) {\n  const u = `https://assets.languagepod101.com/dictionary/japanese/audiomp3.php`\n          + `?kanji=${encodeURIComponent(word)}&kana=${encodeURIComponent(reading)}`;\n  const r = await fetch(u);\n  if (!r.ok) return false;\n  return (await r.arrayBuffer()).byteLength !== JPOD_PLACEHOLDER_BYTES;\n}\n// NOTE: you MUST send both kanji= and kana=. Sending kana= alone returned the placeholder for ねこ.\n```\n\n### 6. CONCRETE BAD ROWS TO QUARANTINE (copy into the build blocklist)\n\n```json\n{\n  \"corruptReading\": [\n    {\"level\":\"N3\",\"word\":\"賛成\",\"reading\":\"Uӣ[い\",\"note\":\"mojibake\"},\n    {\"level\":\"N3\",\"word\":\"うん\",\"reading\":\"（感）\"},\n    {\"level\":\"N3\",\"word\":\"しまい\",\"reading\":\"（終わり）\"},\n    {\"level\":\"N3\",\"word\":\"しまう\",\"reading\":\"（終わる）\"},\n    {\"level\":\"N3\",\"word\":\"しまった\",\"reading\":\"（感）\"},\n    {\"level\":\"N3\",\"word\":\"すみません\",\"reading\":\"（感）\"},\n    {\"level\":\"N3\",\"word\":\"それ\",\"reading\":\"（接。感）\"},\n    {\"level\":\"N3\",\"word\":\"できる\",\"reading\":\"（可能。出現。発生）\"},\n    {\"level\":\"N3\",\"word\":\"どう\",\"reading\":\"（接。副）\"},\n    {\"level\":\"N3\",\"word\":\"とん\",\"reading\":\"（1000\",\"note\":\"truncated\"},\n    {\"level\":\"N3\",\"word\":\"ね\",\"reading\":\"（感）\"},\n    {\"level\":\"N3\",\"word\":\"はい\",\"reading\":\"（感）\"},\n    {\"level\":\"N3\",\"word\":\"ふと\",\"reading\":\"（副）\"},\n    {\"level\":\"N3\",\"word\":\"よろしく\",\"reading\":\"（感）\"},\n    {\"level\":\"N2\",\"word\":\"しいんと\",\"reading\":\"（する）\"},\n    {\"level\":\"N2\",\"word\":\"じゅうたん\",\"reading\":\"（カーペット）\"},\n    {\"level\":\"N2\",\"word\":\"だいいち\",\"reading\":\"（副）\"},\n    {\"level\":\"N2\",\"word\":\"ミリ\",\"reading\":\"（メートル）\"},\n    {\"level\":\"N3\",\"word\":\"暖かい\",\"reading\":\"あたたか(い)\"},\n    {\"level\":\"N5\",\"word\":\"何\",\"reading\":\"なん/なに\"},\n    {\"level\":\"N5\",\"word\":\"九\",\"reading\":\"きゅう / く\"},\n    {\"level\":\"N5\",\"word\":\"四\",\"reading\":\"し / よん\"},\n    {\"level\":\"N5\",\"word\":\"七\",\"reading\":\"しち / なな\"},\n    {\"level\":\"N5\",\"word\":\"十\",\"reading\":\"じゅう とお\"},\n    {\"level\":\"N5\",\"word\":\"毎月\",\"reading\":\"まいげつ/まいつき\"},\n    {\"level\":\"N5\",\"word\":\"毎年\",\"reading\":\"まいねん/まいとし\"},\n    {\"level\":\"N4\",\"word\":\"お金持ち\",\"reading\":\"かねもち/おかねもち\"}\n  ],\n  \"wrongHomophoneDropTheN3Row\": [\n    {\"word\":\"そこ\",\"n3meaning\":\"bottom/sole\",\"actuallyIs\":\"底\",\"keep\":\"N5 that place\"},\n    {\"word\":\"はい\",\"n3meaning\":\"wear/put on (sword)\",\"actuallyIs\":\"佩く\",\"keep\":\"N5 yes\"},\n    {\"word\":\"どう\",\"n3meaning\":\"child/servant/foolishness\",\"actuallyIs\":\"童\",\"keep\":\"N5 how\"},\n    {\"word\":\"ね\",\"n3meaning\":\"value/price/cost/worth/merit\",\"actuallyIs\":\"値\",\"keep\":\"particle ね\"},\n    {\"word\":\"では\",\"n3meaning\":\"chance of going out/opportunity\",\"actuallyIs\":\"出端\",\"keep\":\"N5 with that...\"},\n    {\"word\":\"しまい\",\"n3meaning\":\"sisters\",\"actuallyIs\":\"姉妹\",\"keep\":\"終い = the end\"},\n    {\"word\":\"うん\",\"n3meaning\":\"fortune/luck\",\"actuallyIs\":\"運\",\"keep\":\"interjection うん\"}\n  ],\n  \"wrongReadingOnMultiForm\": [\n    {\"word\":\"伯父/叔父\",\"reading\":\"おじいさん\",\"shouldBe\":\"おじ\",\"note\":\"おじいさん is 祖父/grandfather\"}\n  ],\n  \"splitOnSlash\": [\"いい/よい\",\"キロ/キログラム\",\"キロ/キロメートル\",\"じゃ/じゃあ\",\"そうして/そして\",\n    \"ラジカセ / ラジオカセット\",\"丸い/円い\",\"初め/始め\",\"川/河\",\"伯父/叔父\",\"伯母さん/叔母さん\",\n    \"けれど/けれども\",\"コンピュータ/コンピューター\",\"やはり/やっぱり\",\"レポート/リポート\"],\n  \"notInAnyFrequencyList_showAsExtra\": [\"コピーする\",\"そうして/そして\",\"ゆっくりと\",\"より、ほう\",\n    \"ラジカセ / ラジオカセット\",\"あいさつする\",\"けがする\",\"けんかする\",\"チェックする\",\"とこや\"]\n}\n```\nNote the last bucket: OpenJLPT stores several N4/N5 entries as `<noun>する` compounds (コピーする, けがする, チェックする). Strip the `する` before the frequency and dictionary lookups, then re-append it for display.",
+ "risks": [
+  "OpenJLPT's N3 list contains wrong-homophone EDICT lookups. Shipping it raw will teach the user that はい means 'wear/put on (sword)' and そこ means 'bottom/sole'. You MUST run the quarantine list in code_or_data section 6. This is the single highest-severity data defect I found.",
+  "The `reading` field of 27 rows is not a reading at all — it is a part-of-speech marker like 「（感）」, a slash-joined pair, or in one case (N3 賛成) literal mojibake \"Uӣ[い\". If you feed these into a furigana renderer or a TTS call you will render garbage over the kanji. Validate every reading against /^[぀-ゟ゠-ヿーー・]+$/ before use.",
+  "The JLPT vocabulary lists are UNOFFICIAL. JEES has not published an official word list since 2010. OpenJLPT, open-anki-jlpt-decks and jlpt-vocab-api all trace back to Jonathan Waller's tanos.co.uk reconstruction (kanjium's README states this explicitly). They disagree with each other on 8% of shared words. Do not present levels as authoritative — say 'commonly-used JLPT study list' in the UI.",
+  "kanjidic2's misc.jlptLevel uses the OLD pre-2010 four-level scale (日 is 'jlptLevel: 4', meaning old level 4 = roughly today's N5). Using it as an N-level will invert your entire curriculum. Use OpenJLPT's level or kanji-jouyou.json's jlpt_new instead.",
+  "The JapanesePod101 CDN returns HTTP 200 with a 52,288-byte 'no recording' placeholder rather than a 404. If you don't check the byte length you will render a play button on thousands of words that plays a stock message. Also: that CDN has no public license for redistribution, it can be rate-limited or pulled at any time, and it requires a network connection — so an offline-first app needs a SpeechSynthesis ja-JP fallback, not just a dead button.",
+  "davidluzgouveia/kanji-data has NO license file (GitHub API returns null) and its wk_level / wk_meanings / wk_radicals fields are derived from WaniKani, whose content is proprietary. Use it for level cross-validation only; do not ship the WaniKani radical names or mnemonic-style keywords.",
+  "Kanji Alive's media CDN is not where you'd guess — https://media.kanjialive.com/kanji_audio/ichi.mp3 returned 404 text/html, and their language-data/radicals.csv is also 404. Only ka_data.csv (765,727 B) is confirmed. Don't design a feature around their audio without verifying the real path first.",
+  "889 OpenJLPT words have no example sentence and 233 of them cannot be filled from jmdict-examples (almost all N1). A flashcard UI that assumes an example exists will render an empty card. Handle the null case explicitly.",
+  "Several OpenJLPT example sentences are reused across up to 7 different headwords (「その内訳は？」 appears 7 times). If your flashcard algorithm shows the example on the front, the user will see the same sentence repeatedly and can pattern-match the answer. De-duplicate or show the example only on the back.",
+  "kuromoji's dictionary is ~15 MB of .dat.gz files. It is a BUILD-TIME dependency only — never bundle it into the PWA. If anyone is tempted to tokenize in the browser, that decision alone blows the entire data budget seven times over.",
+  "EDRDG data (JMdict, KANJIDIC, KRADFILE) is CC-BY-SA, and kanjium and OpenJLPT are CC-BY-SA 4.0. ShareAlike is viral over the derived data files. You can keep the app CODE under any license, but the shipped data/*.json files must carry a CC-BY-SA notice and an attribution page naming EDRDG/Jim Breen, OpenJLPT, kanjium (with Uros O.'s exact required sentence, which is quoted in the kanjium README), KanjiVG, Tatoeba and Kanji Alive.",
+  "The jmdict-simplified release TAG contains a literal '+' that must be percent-encoded as %2B in the URL path segment, while the FILENAME segment must keep the raw '+'. Getting this backwards yields a 404. The tag also changes on every release, so pin 3.6.2+20260914172325 in the build script rather than resolving 'latest' at build time.",
+  "jlpt-vocab-api's offset parameter misbehaves at the tail: offset=660&limit=5 on a 662-row set returned an empty array. If you use it as a gap-filler, page from the start rather than seeking near the end.",
+  "JPDB frequency ranks come from an anime/light-novel/visual-novel corpus. They are excellent for 'useful in real Japanese' but they are NOT business-Japanese frequencies. For the user's professional/workplace goal, JPDB will under-rank 弊社, 御中, 恐れ入りますが and similar keigo. Plan a separate hand-curated business track rather than assuming frequency ordering covers it.",
+  "OpenJLPT grammar is only ~20 points per level (9-10 KB per file). That is roughly a quarter of what a real JLPT level needs. This is outside my scope but it is the weakest link in the whole data set — whoever owns grammar must source it elsewhere."
+ ]
+}

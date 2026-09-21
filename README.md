@@ -45,9 +45,13 @@ Open the `https://….trycloudflare.com` URL it prints, on your phone.
 
 **C. Host it permanently** (recommended — then it is just an app you have):
 
-- **GitHub Pages.** Push this repo to GitHub and enable Pages; the included
-  workflow at `.github/workflows/pages.yml` publishes `app/` on every push to
-  `main`. Settings → Pages → Source: *GitHub Actions*.
+- **GitHub Pages.** Two ways, both work:
+  - *Settings → Pages → Source: **GitHub Actions*** — the included workflow at
+    `.github/workflows/pages.yml` publishes `app/` as the site root, so the app
+    is at `https://<user>.github.io/<repo>/`. This is the tidier one.
+  - *Settings → Pages → Source: **Deploy from a branch**, `main` / `/ (root)`* —
+    publishes the whole repo. The root `index.html` redirects to `app/`, so the
+    same URL works; the app itself sits at `/<repo>/app/`.
 - **Cloudflare Pages / Netlify.** Point them at this repo with publish
   directory `app` and no build command. Or one-off:
   `npx wrangler pages deploy ./app --project-name nihongo`

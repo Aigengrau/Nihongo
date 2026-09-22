@@ -3,7 +3,7 @@ import * as data from '../data.js';
 import * as store from '../store.js';
 import { esc, ruby, toast, buzz, speak, canSpeak, openWordSheet } from '../ui.js';
 import { review as schedule, preview, RATING, STATE, newCard } from '../srs.js';
-import { session, bumpToday, touchStreak, enrollLevel, newAllowance, inventory, today as todayCounts } from '../progress.js';
+import { session, bumpToday, touchStreak, enrollLevel, enrollKanji, newAllowance, inventory, today as todayCounts } from '../progress.js';
 
 const GRADES = [
   { g: RATING.AGAIN, label: 'Again' },
@@ -18,19 +18,27 @@ function wordFace(w, { furigana = true } = {}) {
 
 // ---------------------------------------------------------------- Learn
 /** First exposure: see the word, hear it, read it in a sentence, then it enters the SRS. */
-export async function learn({ params, view, setChrome, go }) {
+export async function learn({ params, view, setChrome, go, signal }) {
   const lv = params[0];
-  setChrome({ title: `Learn · ${lv}`, back: true });
+  const kind = params[1] === 'kanji' ? 'kanji' : 'vocab';
+  const isKanji = kind === 'kanji';
+  setChrome({ title: `Learn ${isKanji ? 'kanji' : ''} · ${lv}`.replace('  ', ' '), back: true });
 
-  const [list, inv, counts] = await Promise.all([data.vocab(lv), inventory(), todayCounts()]);
+  const [list, inv, counts] = await Promise.all([
+    isKanji ? data.kanji(lv) : data.vocab(lv), inventory(), todayCounts(),
+  ]);
   const base = await store.setting('newPerDay', 10);
+  const deck = isKanji ? `kanji:${lv}` : `level:${lv}`;
 
   // Enrol only what today's session can actually use. Enrolling a whole level
   // up front put 3,267 N1 words into a beginner's new-card queue after a single
   // curious tap; the rest are added as they are needed.
   const alreadyNew = (await store.all('cards'))
-    .filter((c) => c.state === STATE.NEW && (c.lv === lv || c.deck === `level:${lv}`)).length;
-  if (alreadyNew < base * 3) await enrollLevel(lv, list, alreadyNew + base * 3);
+    .filter((c) => c.state === STATE.NEW && c.deck === deck).length;
+  if (alreadyNew < base * 3) {
+    if (isKanji) await enrollKanji(lv, list, alreadyNew + base * 3);
+    else await enrollLevel(lv, list, alreadyNew + base * 3);
+  }
 
   const allowance = newAllowance(inv.due, base) - counts.new;
   if (allowance <= 0) {
@@ -42,33 +50,40 @@ export async function learn({ params, view, setChrome, go }) {
   }
 
   const cards = (await store.all('cards'))
-    .filter((c) => c.state === STATE.NEW && (c.lv === lv || c.deck === `level:${lv}`))
+    .filter((c) => c.state === STATE.NEW && c.deck === deck)
     .sort((a, b) => (a.ord ?? 0) - (b.ord ?? 0))
     .slice(0, allowance);
 
   if (!cards.length) {
     view.innerHTML = `<div class="empty"><div class="empty-mark">完</div>
-      <p>You have met every ${lv} word.</p>
+      <p>You have met every ${lv} ${isKanji ? 'kanji' : 'word'}.</p>
       <a class="btn btn-primary" style="margin-top:16px" href="#/review">Review them</a></div>`;
     return;
   }
 
-  const byId = new Map(list.map((w) => [w.id, w]));
+  const byId = new Map(list.map((w) => [isKanji ? w.c : w.id, w]));
+  // Kanji cards show real words that use the character, so the learner meets it
+  // in context rather than as an isolated glyph.
+  const vocabById = isKanji
+    ? new Map((await data.vocab(lv)).map((v) => [v.id, v]))
+    : new Map();
   let i = 0;
 
   const draw = () => {
     if (i >= cards.length) {
       view.innerHTML = `<div class="empty"><div class="empty-mark">✓</div>
-        <p><b>${cards.length} new words learned.</b></p>
+        <p><b>${cards.length} new ${isKanji ? 'kanji' : 'words'} learned.</b></p>
         <p class="small" style="margin-top:6px">They will come back for review shortly — that is when they stick.</p>
         <a class="btn btn-primary btn-block" style="margin-top:18px" href="#/review">Start reviewing</a>
         <a class="btn btn-block btn-ghost" style="margin-top:8px" href="#/today">Done for now</a></div>`;
       return;
     }
     const card = cards[i];
-    const w = byId.get(card.vocabId);
+    const w = byId.get(isKanji ? card.kanji : card.vocabId);
     if (!w) { i++; return draw(); }
-    const ex = w.x?.[0];
+    const ex = isKanji ? null : w.x?.[0];
+    const kanjiWords = isKanji ? (w.v || []).map((id) => vocabById.get(id)).filter(Boolean).slice(0, 4) : [];
+    const sayText = isKanji ? (kanjiWords[0]?.r || (w.kun || [])[0] || (w.on || [])[0] || w.c).replace(/[-.]/g, '') : (w.r || w.w);
 
     view.innerHTML = `
       <div class="review-top">
@@ -76,14 +91,34 @@ export async function learn({ params, view, setChrome, go }) {
         <span class="bar" style="flex:1"><i style="width:${(i / cards.length) * 100}%"></i></span>
       </div>
       <div class="card" style="margin-top:12px;text-align:center;padding:26px 16px">
-        ${wordFace(w)}
-        <div class="jp-md muted" lang="ja" style="margin-top:2px">${esc(w.r)}</div>
-        <div style="font-size:18px;font-weight:600;margin-top:14px">${esc(w.m.slice(0, 3).join(', '))}</div>
-        <div style="margin-top:10px">
-          <span class="lv-chip lv-${w.lv}">${w.lv}</span>
-          ${w.cls ? `<span class="pos-tag">${esc(w.cls)}</span>` : ''}
-          ${w.fq ? `<span class="pos-tag">#${w.fq} common</span>` : ''}
-        </div>
+        ${isKanji ? `
+          <div class="jp-lg" lang="ja" style="font-size:78px;line-height:1.1">${esc(w.c)}</div>
+          <div style="font-size:18px;font-weight:600;margin-top:12px">${esc((w.m || []).slice(0, 3).join(', '))}</div>
+          <div class="card" style="margin-top:14px;text-align:left">
+            <div class="spread" style="padding:4px 0"><span class="small muted">On'yomi</span>
+              <span class="jp-sm" lang="ja">${esc((w.on || []).join('、') || '—')}</span></div>
+            <div class="spread" style="padding:4px 0;border-top:1px solid var(--line)"><span class="small muted">Kun'yomi</span>
+              <span class="jp-sm" lang="ja">${esc((w.kun || []).join('、') || '—')}</span></div>
+          </div>
+          <div style="margin-top:10px">
+            <span class="lv-chip lv-${w.lv}">${w.lv}</span>
+            ${w.s ? `<span class="pos-tag">${w.s} strokes</span>` : ''}
+            ${w.fq ? `<span class="pos-tag">#${w.fq} most used</span>` : ''}
+          </div>
+          ${w.comp?.length ? `<div style="margin-top:10px">
+            <div class="small faint" style="margin-bottom:5px">Built from</div>
+            ${w.comp.map((c) => `<span class="pos-tag" lang="ja" style="font-size:14px">${esc(c.r)}${c.m ? ` <span class="faint">${esc(c.m)}</span>` : ''}</span>`).join('')}
+          </div>` : ''}
+        ` : `
+          ${wordFace(w)}
+          <div class="jp-md muted" lang="ja" style="margin-top:2px">${esc(w.r)}</div>
+          <div style="font-size:18px;font-weight:600;margin-top:14px">${esc(w.m.slice(0, 3).join(', '))}</div>
+          <div style="margin-top:10px">
+            <span class="lv-chip lv-${w.lv}">${w.lv}</span>
+            ${w.cls ? `<span class="pos-tag">${esc(w.cls)}</span>` : ''}
+            ${w.fq ? `<span class="pos-tag">#${w.fq} common</span>` : ''}
+          </div>
+        `}
         ${canSpeak() ? `<button class="btn btn-sm" id="say" style="margin-top:14px">🔊 Hear it</button>` : ''}
       </div>
 
@@ -91,6 +126,12 @@ export async function learn({ params, view, setChrome, go }) {
         <div class="small faint" style="margin-bottom:6px">In a sentence</div>
         <div class="jp-md" lang="ja">${esc(ex[0])}</div>
         <div class="ex-en">${esc(ex[1])}</div>
+      </div>` : ''}
+      ${isKanji && kanjiWords.length ? `<div class="card" style="margin-top:10px">
+        <div class="small faint" style="margin-bottom:6px">Words that use it</div>
+        ${kanjiWords.map((v) => `<div class="spread" style="padding:5px 0">
+          <span class="jp-sm" lang="ja">${esc(v.w)}<span class="faint" style="font-size:12px"> ${esc(v.r)}</span></span>
+          <span class="small muted">${esc((v.m || [])[0] || '')}</span></div>`).join('')}
       </div>` : ''}
 
       <div class="row" style="margin-top:14px;gap:8px">
@@ -100,8 +141,8 @@ export async function learn({ params, view, setChrome, go }) {
       <button class="btn btn-block btn-ghost" style="margin-top:8px" id="detail">Full details</button>
     `;
 
-    view.querySelector('#say')?.addEventListener('click', () => speak(w.r || w.w));
-    view.querySelector('#detail').addEventListener('click', () => openWordSheet(w.w));
+    view.querySelector('#say')?.addEventListener('click', () => speak(sayText));
+    view.querySelector('#detail').addEventListener('click', () => openWordSheet(isKanji ? (kanjiWords[0]?.w || w.c) : w.w));
 
     const advance = async (rating) => {
       const { card: next, log } = schedule(card, rating);
@@ -115,7 +156,7 @@ export async function learn({ params, view, setChrome, go }) {
     view.querySelector('#next').addEventListener('click', () => advance(RATING.GOOD));
     view.querySelector('#know').addEventListener('click', () => advance(RATING.EASY));
 
-    if (w.r) speak(w.r);
+    if (sayText) speak(sayText);
   };
 
   await touchStreak();

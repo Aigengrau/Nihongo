@@ -12,7 +12,7 @@
     "fetch": "node build/fetch-sources.mjs",
     "bake:videos": "node build/bake-videos.mjs",
     "test": "node build/test/srs.mjs && node build/test/deinflect.mjs && node build/test/tok.mjs",
-    "test:e2e": "node build/test/e2e.mjs",
+    "test:e2e": "node build/test/run.mjs",
     "test:offline": "node build/test/offline.mjs"
   }
 }

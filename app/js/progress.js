@@ -121,6 +121,26 @@ export async function enrollLevel(level, vocabList, limit = Infinity) {
   return add.length;
 }
 
+/**
+ * Add a level's kanji to the study pool. Kanji cards live alongside vocabulary
+ * in the same deck and the same scheduler, keyed by the character so a kanji
+ * can never be enrolled twice under two levels.
+ */
+export async function enrollKanji(level, kanjiList, limit = Infinity) {
+  const existing = new Set((await store.all('cards')).map((c) => c.key));
+  const add = [];
+  for (const k of kanjiList.slice(0, limit)) {
+    const key = `kanji:${k.c}:rec`;
+    if (existing.has(key)) continue;
+    add.push(newCard(key, `kanji:${level}`, {
+      word: k.c, kanji: k.c, kanjiId: k.id, lv: level, ord: k.id,
+      reading: [...(k.on || []), ...(k.kun || [])].slice(0, 3).join('・'),
+    }));
+  }
+  if (add.length) await store.putMany('cards', add);
+  return add.length;
+}
+
 /** Review counts per day for the heatmap. */
 export async function history(days = 119) {
   const rows = await store.all('reviews');

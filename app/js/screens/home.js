@@ -2,7 +2,7 @@
 import * as data from '../data.js';
 import * as store from '../store.js';
 import { esc, ruby, toast } from '../ui.js';
-import { inventory, today as todayCounts, streak, newAllowance, enrollLevel, stage, STAGES } from '../progress.js';
+import { inventory, today as todayCounts, streak, newAllowance, enrollLevel, enrollKanji, stage, STAGES } from '../progress.js';
 import { eligible as prodEligible } from './produce.js';
 
 const CHEV = `<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
@@ -22,6 +22,7 @@ export async function today({ view, setChrome }) {
   const base = await store.setting('newPerDay', 10);
   const allowance = newAllowance(inv.due, base);
   const level = (await store.setting('level', 'N5'));
+  const kanjiKnown = inv.cards.filter((c) => c.kanji && c.state !== 0).length;
 
   const goal = inv.due + allowance;
   const done = counts.reviews + counts.new;
@@ -72,6 +73,14 @@ export async function today({ view, setChrome }) {
                <span class="tile-ico">新</span>
                <span class="tile-main"><span class="tile-title">New words paused</span>
                  <span class="tile-sub">Catch up on reviews to unlock them</span></span></div>`}
+
+        ${allowance > 0
+          ? `<a class="tile" href="#/learn/${esc(level)}/kanji">
+               <span class="tile-ico">漢</span>
+               <span class="tile-main"><span class="tile-title">Learn ${Math.min(10, allowance)} new kanji</span>
+                 <span class="tile-sub">${esc(level)} · ${kanjiKnown} of ${lstats[level]?.kanji ?? 0} met</span></span>
+               <span class="tile-end">${CHEV}</span></a>`
+          : ''}
 
         <a class="tile" href="#/grammar/${esc(level)}">
           <span class="tile-ico">文</span>
@@ -134,7 +143,10 @@ export async function today({ view, setChrome }) {
 // ---------------------------------------------------------------- Levels
 export async function levels({ view, setChrome }) {
   setChrome({ title: 'Levels' });
-  const [lstats, cards] = await Promise.all([data.levelStats(), store.all('cards')]);
+  const [lstats, cards, tracks] = await Promise.all([
+    data.levelStats(), store.all('cards'),
+    fetch('./data/tracks/index.json').then((r) => r.json()).catch(() => []),
+  ]);
 
   const perLevel = {};
   for (const c of cards) {
@@ -175,12 +187,14 @@ export async function levels({ view, setChrome }) {
     </div>
 
     <h2 class="section-title">Beyond the JLPT</h2>
-    <a class="tile" href="#/business">
-      <span class="tile-ico">仕</span>
-      <span class="tile-main"><span class="tile-title">Business Japanese</span>
-        <span class="tile-sub">Keigo, email, meetings, phone — the working track</span></span>
-      <span class="tile-end">${CHEV}</span>
-    </a>
+    <p class="small faint" style="margin:0 2px 8px">The parts the exam does not cover.</p>
+    <div class="stack">
+      ${tracks.map((t) => `<a class="tile" href="#/track/${esc(t.id)}">
+        <span class="tile-ico">${esc(t.icon)}</span>
+        <span class="tile-main"><span class="tile-title">${esc(t.title)}</span>
+          <span class="tile-sub">${esc(t.blurb)}</span></span>
+        <span class="tile-end">${CHEV}</span></a>`).join('')}
+    </div>
   `;
 }
 
@@ -230,9 +244,10 @@ export async function level({ params, view, setChrome }) {
     <div class="tiles">
       ${lv === 'N5' ? tile('#/kana', 'あ', 'Kana', 'Hiragana and katakana first') : ''}
       ${tile(`#/learn/${lv}`, '新', 'Learn new words', 'First exposure, with audio and a sentence')}
+      ${tile(`#/learn/${lv}/kanji`, '漢', 'Learn new kanji', 'Readings, components, and words that use it')}
       ${tile(`#/review/level:${lv}`, '復', 'Flashcards', `${mine.filter((c) => c.due <= Date.now() && c.state !== 0).length} due now`)}
-      ${tile(`#/words/${lv}`, '語', 'All words', `${s.vocab ?? 0} words, ordered by usefulness`)}
-      ${tile(`#/kanji/${lv}`, '漢', 'Kanji', `${s.kanji ?? 0} characters with components`)}
+      ${tile(`#/words/${lv}`, '語', 'All words', `${s.vocab ?? 0} words · flashcards, quiz, match, listen`)}
+      ${tile(`#/kanji/${lv}`, '字', 'Browse kanji', `${s.kanji ?? 0} characters · flashcards, quiz, match`)}
       ${tile(`#/grammar/${lv}`, '文', 'Grammar', `${s.grammar ?? 0} points with examples`)}
       ${tile(`#/conjugate/${lv}`, '活', 'Conjugation drill', 'Verbs and adjectives, all forms')}
       ${tile('#/produce', '話', 'Say it yourself', 'English in, Japanese out — unlocks as you master words')}

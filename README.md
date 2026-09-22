@@ -73,7 +73,7 @@ Open the `https://….trycloudflare.com` URL it prints, on your phone.
 
 | | |
 |---|---|
-| **Words** | 8,050 JLPT words ordered by how often they actually turn up in speech, not alphabetically. Each with readings, furigana, part of speech, and real example sentences. |
+| **Words** | 8,052 JLPT words ordered by how often they actually turn up in speech, not alphabetically. Each with readings, furigana, part of speech, and real example sentences. |
 | **Kanji** | 2,211 characters with readings, stroke counts, the components they are built from, and the words that use them. |
 | **Grammar** | 695 grammar points with formation, nuance, worked examples, "watch out" notes, and links to the points they are confused with. |
 | **Flashcards** | FSRS-5 spaced repetition — the algorithm Anki now ships by default. Four grade buttons, each showing when you will next see the card. |
@@ -81,15 +81,27 @@ Open the `https://….trycloudflare.com` URL it prints, on your phone.
 | **Listen** | Japanese audio with big Japanese + English subtitles, at every level. Tap any word and it pauses while you read. Works offline. |
 | **Watch** | 131 verified YouTube videos with big Japanese + English subtitles below the player. Tap any word. (Subtitle tracks need one build step — see below.) |
 | **Conjugation drill** | 1,848 verbs and adjectives, drilled only in forms you have reached at your level. |
+| **Five ways through a list** | Both the word list and the kanji list have a mode bar: **List**, **Flashcards** (shuffled, tap to flip), **Quiz** (four-choice, both directions, offers to add what you missed to your real deck), **Match** (pair five at a time), **Listen** (hear it, pick it). None of these touch your review schedule. |
 | **Say it yourself** | Production practice — English in, Japanese out, built from kana tiles. Unlocks per word once you can reliably recognise it. |
 
 **Before N5** — hiragana and katakana, 104 characters with a quiz that knows
 which pairs learners actually confuse (ね/れ/わ, シ/ツ, ソ/ン).
 
-**After N2** — a Business Japanese track: the twenty irregular keigo verbs as a
-transformation drill, email as block assembly, phone, meetings, 報連相, and the
-three acts that damage relationships when done bluntly (requests, apologies,
-refusals).
+**Beyond the JLPT** — six tracks for the things an exam does not test, 53
+modules and 603 items, each written and then independently checked by a second
+pass:
+
+| | |
+|---|---|
+| 旅 **Travel** | From N5 — the one track usable on day one. Weighted toward what staff *say to you*, because that is the half that actually goes wrong. |
+| 話 **Real casual Japanese** | Plain form and when switching down is welcome rather than presumptuous, contractions, sentence-final particles, 相槌, LINE Japanese. |
+| 音 **Sounds and counting** | Onomatopoeia (擬音語・擬態語) and counters, including the readings that change irregularly — 一本 いっぽん, 三本 さんぼん, 六本 ろっぽん laid out in a row. |
+| 方 **Dialects** | Mostly 関西弁 — の systematic differences and the words with no standard equivalent — then a tour of 東北, 博多, 名古屋, 広島, 沖縄. |
+| 仕 **Business** | Keigo as a transformation drill, email as block assembly, phone, meetings, 報連相, and 社内 vs 社外. |
+| 学 **Academic** | Seminar register, である体 vs ですます体, academic connectives, hedging, presenting research. |
+
+Every comparison table (keigo, Kansai, counters, register) doubles as a
+multiple-choice drill generated from the table itself.
 
 **Everywhere** — tap any Japanese word, anywhere in the app, and a sheet tells
 you what it means, what its dictionary form is, *how it was conjugated to get

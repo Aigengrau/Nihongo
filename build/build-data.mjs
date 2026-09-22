@@ -193,9 +193,30 @@ for (const kind of ['videos', 'stories']) {
 }
 
 
-// Authored business/professional track.
-const bizSrc = path.join(ROOT, 'build', 'content', 'business.json');
-if (fs.existsSync(bizSrc)) write('business.json', JSON.parse(fs.readFileSync(bizSrc, 'utf8')));
+// Authored "Beyond the JLPT" tracks — business, travel, dialects, academic,
+// sounds & counting, casual speech. Each is self-contained; the index is what
+// the hub screen lists.
+{
+  const dir = path.join(ROOT, 'build', 'content', 'tracks');
+  if (fs.existsSync(dir)) {
+    const idx = [];
+    for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.json'))) {
+      const t = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+      write(`tracks/${t.id}.json`, t);
+      idx.push({
+        id: t.id, title: t.title, icon: t.icon,
+        blurb: (t.intro || '').split(/(?<=\.)\s/)[0],
+        modules: (t.modules || []).length,
+        items: (t.modules || []).reduce((a, m) => a + (m.items?.length || 0) + (m.slots?.length || 0), 0),
+        from: (t.stages || [])[0]?.after || 'N5',
+      });
+    }
+    const order = ['travel', 'casual', 'expressive', 'dialects', 'business', 'academic'];
+    idx.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+    write('tracks/index.json', idx);
+    console.log(`  ${idx.length} beyond-JLPT tracks, ${idx.reduce((a, t) => a + t.items, 0)} items`);
+  }
+}
 
 write('index.json', index);
 console.log(`\ntotal app data: ${(total / 1048576).toFixed(2)} MB uncompressed\n`);

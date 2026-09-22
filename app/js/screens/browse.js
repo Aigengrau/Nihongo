@@ -3,15 +3,21 @@ import * as data from '../data.js';
 import * as store from '../store.js';
 import { esc, ruby, toast, buzz, speak, canSpeak, openWordSheet, openSheet } from '../ui.js';
 import { stage } from '../progress.js';
+import { runDrill, modeBar } from './drill.js';
 
 const CHEV = `<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
 // ---------------------------------------------------------------- words
 export async function words({ params, view, setChrome, signal }) {
   const lv = params[0];
+  const mode = params[1] || 'list';
   setChrome({ title: `${lv} words`, back: true });
   const [list, cards] = await Promise.all([data.vocab(lv), store.all('cards')]);
   const byVocab = new Map(cards.filter((c) => c.vocabId != null).map((c) => [c.vocabId, c]));
+
+  if (mode !== 'list') {
+    return runDrill({ mode, kind: 'vocab', items: list, view, signal, lv, base: `/words/${lv}` });
+  }
 
   let q = '';
   const PAGE = 60;
@@ -37,7 +43,9 @@ export async function words({ params, view, setChrome, signal }) {
   };
 
   view.innerHTML = `
-    <input class="search" id="q" type="search" placeholder="Search Japanese or English" autocomplete="off">
+    ${modeBar('list', `/words/${lv}`)}
+    <input class="search" id="q" type="search" placeholder="Search Japanese or English"
+      autocomplete="off" style="margin-top:12px">
     <p class="small faint" style="margin:10px 2px" id="count"></p>
     <div class="list" id="list"></div>
     <button class="btn btn-block btn-ghost" id="more" style="margin-top:12px">Show more</button>
@@ -57,13 +65,19 @@ export async function words({ params, view, setChrome, signal }) {
 // ---------------------------------------------------------------- kanji
 export async function kanjiList({ params, view, setChrome, signal }) {
   const lv = params[0];
+  const mode = params[1] || 'list';
   setChrome({ title: `${lv} kanji`, back: true });
   const [list, vocabList] = await Promise.all([data.kanji(lv), data.vocab(lv)]);
   const byId = new Map(vocabList.map((w) => [w.id, w]));
 
+  if (mode !== 'list') {
+    return runDrill({ mode, kind: 'kanji', items: list, view, signal, lv, base: `/kanji/${lv}` });
+  }
+
   view.innerHTML = `
-    <p class="small faint" style="margin:0 2px 12px">${list.length} characters, most common first.</p>
-    <div class="kana-grid" style="grid-template-columns:repeat(4,1fr)">
+    ${modeBar('list', `/kanji/${lv}`)}
+    <p class="small faint" style="margin:12px 2px">${list.length} characters, most common first.</p>
+    <div class="kana-grid" style="grid-template-columns:repeat(4,minmax(0,1fr))">
       ${list.map((k) => `<button class="kana-cell" data-c="${esc(k.c)}">
         <span class="k" lang="ja" style="font-size:28px">${esc(k.c)}</span>
         <span class="r">${esc((k.m[0] || '').slice(0, 10))}</span>

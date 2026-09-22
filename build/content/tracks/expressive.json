@@ -1,0 +1,803 @@
+{
+ "id": "expressive",
+ "title": "Sounds and counting",
+ "icon": "音",
+ "intro": "Two things textbooks skim over and Japanese people use in every other sentence. Onomatopoeia is not baby talk — adults say ぐっすり, ばっちり and さっぱり in the office, and Japanese reaches for a sound word where English would need a whole clause. Counters are the other half: the numbers are easy, but 一本 いっぽん and 三本 さんぼん are sound changes nobody can guess, so they are laid out here in rows where you can see the pattern instead of meeting it one word at a time. Get these two and you stop sounding translated.",
+ "stages": [
+  {
+   "id": "s1",
+   "name": "Onomatopoeia 擬音語・擬態語",
+   "after": "N4",
+   "note": "Start once you can build a sentence. These attach to verbs you already know, so every one you learn pays off immediately."
+  },
+  {
+   "id": "s2",
+   "name": "Counters 助数詞",
+   "after": "N5",
+   "note": "Nominally N5 material, and almost nobody finishes it. Do this stage whenever — you will use it the same afternoon."
+  },
+  {
+   "id": "s3",
+   "name": "Dates, times and real use",
+   "after": "N5",
+   "note": "The irregular readings that make you hesitate at a ticket counter, plus the counting phrases you actually say out loud."
+  }
+ ],
+ "modules": [
+  {
+   "id": "giongo",
+   "stage": "s1",
+   "kind": "phrases",
+   "title": "Sound words 擬音語",
+   "blurb": "Words that are the noise itself. Weather forecasters and food writers use these in earnest.",
+   "items": [
+    {
+     "ja": "雨がざあざあ降っている。",
+     "r": "あめがざあざあふっている。",
+     "en": "It's pouring with rain.",
+     "note": "Rain has a scale: ぽつぽつ the first few drops, しとしと a quiet drizzle, ざあざあ a downpour. Forecasters really say these on air."
+    },
+    {
+     "ja": "会場はがやがやしていた。",
+     "r": "かいじょうはがやがやしていた。",
+     "en": "The hall was buzzing with chatter.",
+     "note": "がやがや is many voices at once. One loud person is うるさい — never がやがや."
+    },
+    {
+     "ja": "このおせんべい、ぱりぱりしてておいしい。",
+     "r": "このおせんべい、ぱりぱりしてておいしい。",
+     "en": "These rice crackers are wonderfully crisp.",
+     "note": "Texture words are how food is described here: さくさく light and crisp, もちもち soft and chewy, とろとろ melting. Casual register — this is friends-at-dinner talk."
+    },
+    {
+     "ja": "お腹がぐうぐう鳴っている。",
+     "r": "おなかがぐうぐうなっている。",
+     "en": "My stomach is rumbling."
+    },
+    {
+     "ja": "誰かがドアをコンコンとたたいた。",
+     "r": "だれかがドアをコンコンとたたいた。",
+     "en": "Someone knocked at the door.",
+     "note": "Actual noises are often written in katakana, manner words in hiragana. Either is correct — katakana just makes the sound louder on the page."
+    },
+    {
+     "ja": "雷がごろごろ鳴っている。",
+     "r": "かみなりがごろごろなっている。",
+     "en": "Thunder is rumbling.",
+     "note": "ごろごろ is also lounging around doing nothing: 日曜は家でごろごろしていた。Same word, completely different life."
+    },
+    {
+     "ja": "風がびゅうびゅう吹いている。",
+     "r": "かぜがびゅうびゅうふいている。",
+     "en": "The wind is howling."
+    },
+    {
+     "ja": "子どもたちがきゃあきゃあ騒いでいる。",
+     "r": "こどもたちがきゃあきゃあさわいでいる。",
+     "en": "The children are shrieking and tearing about."
+    },
+    {
+     "ja": "隣の人がそばをずるずるとすすっている。",
+     "r": "となりのひとがそばをずるずるとすすっている。",
+     "en": "The person next to me is slurping their soba.",
+     "note": "Slurping noodles is normal, and so is drinking miso soup straight from the bowl. Making the same noise with a spoonful of western soup is the one that gets looks."
+    },
+    {
+     "ja": "鍋がぐつぐつ煮えている。",
+     "r": "なべがぐつぐつにえている。",
+     "en": "The pot is bubbling away."
+    }
+   ]
+  },
+  {
+   "id": "gitaigo",
+   "stage": "s1",
+   "kind": "phrases",
+   "title": "State and manner 擬態語",
+   "blurb": "The larger and stranger half: words for how something looks, feels or behaves, with no sound involved at all.",
+   "items": [
+    {
+     "ja": "彼は英語がぺらぺらだ。",
+     "r": "かれはえいごがぺらぺらだ。",
+     "en": "He's completely fluent in English.",
+     "note": "A compliment, but a casual one — fine about a colleague, too breezy about a client. Attached to しゃべる it turns negative: ぺらぺらしゃべる is to blab."
+    },
+    {
+     "ja": "星がきらきら光っている。",
+     "r": "ほしがきらきらひかっている。",
+     "en": "The stars are twinkling."
+    },
+    {
+     "ja": "昨日はぐっすり眠れた。",
+     "r": "きのうはぐっすりねむれた。",
+     "en": "I slept really well last night.",
+     "note": "ぐっすり only ever goes with sleeping, and never takes と."
+    },
+    {
+     "ja": "休みの日は一日中だらだらしていた。",
+     "r": "やすみのひはいちにちじゅうだらだらしていた。",
+     "en": "I lazed around all day on my day off.",
+     "note": "Said of yourself it is self-deprecating and harmless. Said of someone's work it is a real criticism: 会議がだらだら長引く, a meeting that drags on."
+    },
+    {
+     "ja": "準備はばっちりです。",
+     "r": "じゅんびはばっちりです。",
+     "en": "Everything's all set.",
+     "note": "Confident and casual. Good with colleagues; to a client say 準備は整っております instead."
+    },
+    {
+     "ja": "説明を聞いたけど、さっぱり分からなかった。",
+     "r": "せつめいをきいたけど、さっぱりわからなかった。",
+     "en": "I listened to the explanation and didn't understand a thing.",
+     "note": "さっぱり with a negative means not in the slightest. With a positive verb it means refreshed or clean-tasting: シャワーを浴びてさっぱりした。One word leading two lives."
+    },
+    {
+     "ja": "このシャツ、サイズがぴったりだ。",
+     "r": "このシャツ、サイズがぴったりだ。",
+     "en": "This shirt fits perfectly.",
+     "note": "ぴったり is exactness of any kind, including time: 三時ぴったりに着いた — arrived at three on the dot."
+    },
+    {
+     "ja": "凍った道がつるつる滑る。",
+     "r": "こおったみちがつるつるすべる。",
+     "en": "The frozen road is slippery as glass."
+    },
+    {
+     "ja": "書類がばらばらになってしまった。",
+     "r": "しょるいがばらばらになってしまった。",
+     "en": "The papers have got completely out of order.",
+     "note": "ばらばら is scattered or mismatched, and it works on abstract things too: 意見がばらばらだ — opinions all over the place."
+    },
+    {
+     "ja": "娘さん、お母さんにそっくりですね。",
+     "r": "むすめさん、おかあさんにそっくりですね。",
+     "en": "Your daughter looks just like her mother.",
+     "note": "The person resembled takes に, not と. Safe small talk, and always heard as a compliment."
+    }
+   ]
+  },
+  {
+   "id": "kanjo",
+   "stage": "s1",
+   "kind": "phrases",
+   "title": "Body and feeling 感覚",
+   "blurb": "How you say you feel. At a clinic these are worth more than any medical vocabulary — the doctor is listening for exactly these words.",
+   "items": [
+    {
+     "ja": "面接の前は心臓がどきどきした。",
+     "r": "めんせつのまえはしんぞうがどきどきした。",
+     "en": "My heart was pounding before the interview.",
+     "note": "どきどき covers nerves and excitement alike — dread and anticipation share one word. わくわく is the purely happy version."
+    },
+    {
+     "ja": "明日の旅行が楽しみでわくわくする。",
+     "r": "あしたのりょこうがたのしみでわくわくする。",
+     "en": "I'm buzzing about tomorrow's trip."
+    },
+    {
+     "ja": "電車が遅れていらいらした。",
+     "r": "でんしゃがおくれていらいらした。",
+     "en": "The train was late and it got on my nerves.",
+     "note": "Use it about yourself. いらいらしないで to another person lands about as well as 'calm down' does in English."
+    },
+    {
+     "ja": "頭がずきずき痛む。",
+     "r": "あたまがずきずきいたむ。",
+     "en": "I have a throbbing headache.",
+     "note": "Pain has its own vocabulary and the doctor will ask for it: ずきずき throbbing, しくしく a dull persistent ache, ちくちく prickling, ひりひり stinging. The right one gets you diagnosed faster than any noun."
+    },
+    {
+     "ja": "日焼けで背中がひりひりする。",
+     "r": "ひやけでせなかがひりひりする。",
+     "en": "My back is stinging from the sunburn."
+    },
+    {
+     "ja": "熱があって、ふらふらする。",
+     "r": "ねつがあって、ふらふらする。",
+     "en": "I have a fever and I feel unsteady on my feet."
+    },
+    {
+     "ja": "一日歩いてぐったりした。",
+     "r": "いちにちあるいてぐったりした。",
+     "en": "A whole day of walking left me wiped out."
+    },
+    {
+     "ja": "胃がむかむかする。",
+     "r": "いがむかむかする。",
+     "en": "I feel queasy.",
+     "note": "むかむか is nausea and also anger rising in you. The casual verb むかつく carries both senses — 'it turns my stomach' and 'it makes my blood boil' — and is rough language either way."
+    },
+    {
+     "ja": "喉がからからだ。",
+     "r": "のどがからからだ。",
+     "en": "I'm parched."
+    },
+    {
+     "ja": "連絡が来てほっとした。",
+     "r": "れんらくがきてほっとした。",
+     "en": "I was relieved when I finally heard from them.",
+     "note": "ほっと is single-beat, not doubled — ほっとほっと is not a word. ほっとする is the everyday form; you will also meet ほっと息をつく."
+    }
+   ]
+  },
+  {
+   "id": "onomatopoeia-grammar",
+   "stage": "s1",
+   "kind": "phrases",
+   "title": "How they attach 接続",
+   "blurb": "The part textbooks leave out. Learn which shape a word takes and you can use any onomatopoeia you meet.",
+   "items": [
+    {
+     "ja": "ＡＢＡＢ ＋（と）＋ 動詞",
+     "r": "",
+     "en": "SHAPE 1 — as an adverb: ざあざあ（と）降る, にこにこ（と）笑う",
+     "note": "With doubled words the と is optional; people drop it in speech and keep it in writing. Words that already end in っと (じっと, さっと, ざっと, はっと) contain it and never take another."
+    },
+    {
+     "ja": "ＡＢＡＢ ＋ する",
+     "r": "",
+     "en": "SHAPE 2 — as a verb: いらいらする, わくわくする, だらだらする",
+     "note": "Words for a state of body or mind take する; words for a literal noise almost never do. ざあざあする is not Japanese."
+    },
+    {
+     "ja": "ＡＢＡＢ ＋ だ / な / の",
+     "r": "",
+     "en": "SHAPE 3 — as a descriptive word: ぺらぺらだ, 喉がからからだ, ぴったりの服",
+     "note": "A handful describe a resulting condition and behave like adjectives. Before だ they all work; before a noun they split — ぺらぺらな英語 takes な, ぴったりの服 takes の, and which one a word wants has to be learned with it. If it answers 'what state is it in?', try だ first."
+    },
+    {
+     "ja": "彼はこちらをじっと見ていた。",
+     "r": "かれはこちらをじっとみていた。",
+     "en": "He was staring right at me.",
+     "note": "じっと is stillness. じっと見る is to stare; じっとしていて is what you say to a child who will not sit still."
+    },
+    {
+     "ja": "もう少しゆっくり話していただけますか。",
+     "r": "もうすこしゆっくりはなしていただけますか。",
+     "en": "Could you speak a little more slowly?",
+     "note": "ゆっくり is an onomatopoeic adverb that everyone learns without noticing. Possibly the single most useful sentence in this track."
+    },
+    {
+     "ja": "彼女はにこにこ笑っていた。",
+     "r": "かのじょはにこにこわらっていた。",
+     "en": "She was smiling away happily.",
+     "note": "にこにこ is a smile held over time; にっこり is one smile at one moment. Doubling means continuous — that holds across most of these words."
+    },
+    {
+     "ja": "赤ちゃんがすやすや眠っている。",
+     "r": "あかちゃんがすやすやねむっている。",
+     "en": "The baby is sleeping peacefully."
+    },
+    {
+     "ja": "彼はぶつぶつ文句を言っている。",
+     "r": "かれはぶつぶつもんくをいっている。",
+     "en": "He's muttering complaints under his breath."
+    },
+    {
+     "ja": "資料にざっと目を通しておいてください。",
+     "r": "しりょうにざっとめをとおしておいてください。",
+     "en": "Please have a quick look through the materials beforehand.",
+     "note": "ざっと is roughly, at a glance — heard constantly in offices, and nothing to do with ざあざあ."
+    },
+    {
+     "ja": "うっかり財布を忘れてしまった。",
+     "r": "うっかりさいふをわすれてしまった。",
+     "en": "I carelessly went and left my wallet behind.",
+     "note": "うっかり＋〜てしまった is the standard way to own a small mistake without making a production of it."
+    }
+   ]
+  },
+  {
+   "id": "counters-general",
+   "stage": "s2",
+   "kind": "transform",
+   "title": "The general counters つ・個・人",
+   "blurb": "The three you need before any other. Two of them are irregular in exactly the places you will need first.",
+   "note": "〜つ is the safety net: it counts almost any object up to ten and nobody will think twice. 〜個 is the workhorse for small solid things. 〜人 is not optional — there is no way to count people with つ. In restaurants and reservations staff count you with 名: 三名様でしょうか. Answer with the plain 〜人 — 三人です — because 様 about yourself is the mistake everyone hears.",
+   "columns": [
+    {
+     "key": "n",
+     "label": "number"
+    },
+    {
+     "key": "tsu",
+     "label": "〜つ anything"
+    },
+    {
+     "key": "ko",
+     "label": "〜個 small objects"
+    },
+    {
+     "key": "nin",
+     "label": "〜人 people"
+    }
+   ],
+   "items": [
+    {
+     "n": "1",
+     "tsu": "ひとつ",
+     "ko": "いっこ",
+     "nin": "ひとり",
+     "en": "one",
+     "note": "ひとり and ふたり are the only two people-counts using the old native numbers. Everything from three up is plain 〜にん."
+    },
+    {
+     "n": "2",
+     "tsu": "ふたつ",
+     "ko": "にこ",
+     "nin": "ふたり",
+     "en": "two"
+    },
+    {
+     "n": "3",
+     "tsu": "みっつ",
+     "ko": "さんこ",
+     "nin": "さんにん",
+     "en": "three"
+    },
+    {
+     "n": "4",
+     "tsu": "よっつ",
+     "ko": "よんこ",
+     "nin": "よにん",
+     "en": "four",
+     "note": "四人 is よにん. よんにん is wrong — even though 四個 really is よんこ. The 四 shifts between よ and よん with no warning."
+    },
+    {
+     "n": "5",
+     "tsu": "いつつ",
+     "ko": "ごこ",
+     "nin": "ごにん",
+     "en": "five"
+    },
+    {
+     "n": "6",
+     "tsu": "むっつ",
+     "ko": "ろっこ",
+     "nin": "ろくにん",
+     "en": "six"
+    },
+    {
+     "n": "7",
+     "tsu": "ななつ",
+     "ko": "ななこ",
+     "nin": "しちにん",
+     "en": "seven",
+     "note": "しちにん and ななにん are both correct. Say ななにん on the phone — しち and いち are near-indistinguishable down a line."
+    },
+    {
+     "n": "8",
+     "tsu": "やっつ",
+     "ko": "はっこ",
+     "nin": "はちにん",
+     "en": "eight"
+    },
+    {
+     "n": "9",
+     "tsu": "ここのつ",
+     "ko": "きゅうこ",
+     "nin": "きゅうにん",
+     "en": "nine",
+     "note": "九人 is きゅうにん; くにん does not exist. Yet 九時 is くじ and only くじ. Nine is the least consistent number in the language."
+    },
+    {
+     "n": "10",
+     "tsu": "とお",
+     "ko": "じゅっこ",
+     "nin": "じゅうにん",
+     "en": "ten",
+     "note": "とお has no つ on it, and the native series stops dead here. There is no eleventh 〜つ — from there it is 十一個 or the bare number."
+    }
+   ]
+  },
+  {
+   "id": "counters-sound",
+   "stage": "s2",
+   "kind": "transform",
+   "title": "Sound changes 音便",
+   "blurb": "一本 いっぽん, 三本 さんぼん, 六本 ろっぽん. Read the rows across and the pattern stops being random.",
+   "note": "One pattern, three counters. After 1, 6, 8 and 10 the number takes a small っ and the h- hardens to p-: いっぽん, ろっぴき, はっぱい, じゅっぽん. After 3 — and after 何 — it voices to b- instead: さんぼん, さんびき, さんばい, なんぼん. At 2, 4, 5, 7 and 9 nothing happens. 分 and 泊 take the same っ+p- but go p- after 3 as well (三分 さんぷん, 三泊 さんぱく), and 階 does its own thing entirely: 三階 さんがい (さんかい is also heard), 何階 なんがい.",
+   "columns": [
+    {
+     "key": "n",
+     "label": "number"
+    },
+    {
+     "key": "hon",
+     "label": "〜本 long things"
+    },
+    {
+     "key": "hiki",
+     "label": "〜匹 small animals"
+    },
+    {
+     "key": "hai",
+     "label": "〜杯 cupfuls"
+    }
+   ],
+   "items": [
+    {
+     "n": "1",
+     "hon": "いっぽん",
+     "hiki": "いっぴき",
+     "hai": "いっぱい",
+     "en": "one",
+     "note": "一杯 いっぱい is also the everyday word for 'full' — お腹がいっぱい. Identical sound, unrelated meaning; only context separates them."
+    },
+    {
+     "n": "2",
+     "hon": "にほん",
+     "hiki": "にひき",
+     "hai": "にはい",
+     "en": "two"
+    },
+    {
+     "n": "3",
+     "hon": "さんぼん",
+     "hiki": "さんびき",
+     "hai": "さんばい",
+     "en": "three",
+     "note": "The voiced row. 何本 なんぼん, 何匹 なんびき, 何杯 なんばい behave exactly like 三 — which is why asking 'how many?' sounds like counting three."
+    },
+    {
+     "n": "4",
+     "hon": "よんほん",
+     "hiki": "よんひき",
+     "hai": "よんはい",
+     "en": "four",
+     "note": "四 is よん with all of these and the counter stays clean. The exception is 分: 四分 is よんぷん, not よんふん."
+    },
+    {
+     "n": "5",
+     "hon": "ごほん",
+     "hiki": "ごひき",
+     "hai": "ごはい",
+     "en": "five"
+    },
+    {
+     "n": "6",
+     "hon": "ろっぽん",
+     "hiki": "ろっぴき",
+     "hai": "ろっぱい",
+     "en": "six"
+    },
+    {
+     "n": "7",
+     "hon": "ななほん",
+     "hiki": "ななひき",
+     "hai": "ななはい",
+     "en": "seven",
+     "note": "七 is なな with most counters — ななほん, ななひき, ななはい. しち holds on in 七時 しちじ, 七月 しちがつ and 七人 しちにん."
+    },
+    {
+     "n": "8",
+     "hon": "はっぽん",
+     "hiki": "はっぴき",
+     "hai": "はっぱい",
+     "en": "eight"
+    },
+    {
+     "n": "9",
+     "hon": "きゅうほん",
+     "hiki": "きゅうひき",
+     "hai": "きゅうはい",
+     "en": "nine"
+    },
+    {
+     "n": "10",
+     "hon": "じゅっぽん",
+     "hiki": "じゅっぴき",
+     "hai": "じゅっぱい",
+     "en": "ten",
+     "note": "じゅっぽん is what everyone says. じっぽん is the older prescribed reading you will still see in dictionaries and hear from newsreaders."
+    }
+   ]
+  },
+  {
+   "id": "counters-choice",
+   "stage": "s2",
+   "kind": "transform",
+   "title": "Which counter for what 数え方",
+   "blurb": "Shape decides the counter, not category. Long and thin, flat, or machine — that is most of the decision.",
+   "note": "Japanese has hundreds of counters and you need about fifteen. If you blank on one, 〜つ (up to ten) or 〜個 will be understood every single time — and a fallback sounds far less odd than the wrong specific counter.",
+   "columns": [
+    {
+     "key": "thing",
+     "label": "thing"
+    },
+    {
+     "key": "counter",
+     "label": "counter 助数詞"
+    },
+    {
+     "key": "two",
+     "label": "saying two"
+    }
+   ],
+   "items": [
+    {
+     "thing": "傘",
+     "counter": "本",
+     "two": "二本（にほん）",
+     "en": "umbrella",
+     "note": "本 is anything long and thin — pens, bottles, bananas, rivers, roads. Then, less obviously: phone calls, films, home runs and train services."
+    },
+    {
+     "thing": "Tシャツ",
+     "counter": "枚",
+     "two": "二枚（にまい）",
+     "en": "T-shirt",
+     "note": "枚 is flat and thin: paper, plates, tickets, shirts, slices of bread, banknotes."
+    },
+    {
+     "thing": "犬",
+     "counter": "匹",
+     "two": "二匹（にひき）",
+     "en": "dog"
+    },
+    {
+     "thing": "馬",
+     "counter": "頭",
+     "two": "二頭（にとう）",
+     "en": "horse",
+     "note": "匹 for animals you could pick up, 頭 for the ones you could not — horses, cattle, elephants. A pet dog is 匹; a police or guide dog is often 頭 in official writing, though 匹 is heard for those too."
+    },
+    {
+     "thing": "車",
+     "counter": "台",
+     "two": "二台（にだい）",
+     "en": "car",
+     "note": "台 counts machines with a body: cars, computers, washing machines, cameras, pianos."
+    },
+    {
+     "thing": "本",
+     "counter": "冊",
+     "two": "二冊（にさつ）",
+     "en": "book",
+     "note": "冊 is bound things — books, magazines, notebooks. Note 一冊 いっさつ, 八冊 はっさつ and 十冊 じゅっさつ; the rest are plain さつ."
+    },
+    {
+     "thing": "コーヒー",
+     "counter": "杯",
+     "two": "二杯（にはい）",
+     "en": "a coffee",
+     "note": "杯 counts what is in the vessel, not the vessel. Draft beer is 二杯, bottled beer is 二本, and the empty cup itself is 二個."
+    },
+    {
+     "thing": "靴",
+     "counter": "足",
+     "two": "二足（にそく）",
+     "en": "shoes",
+     "note": "足 counts pairs of footwear, socks included. 一足 いっそく, 三足 さんぞく."
+    },
+    {
+     "thing": "手紙",
+     "counter": "通",
+     "two": "二通（につう）",
+     "en": "letter",
+     "note": "通 counts letters and emails as messages. 枚 counts the sheets of paper one is written on — both can be true of the same object."
+    },
+    {
+     "thing": "魚",
+     "counter": "匹",
+     "two": "二匹（にひき）",
+     "en": "fish",
+     "note": "Alive it is 匹. Whole on the fishmonger's ice it is often 尾 び. Cut into fillets it becomes 切れ きれ. The counter tracks what has happened to it."
+    },
+    {
+     "thing": "家",
+     "counter": "軒",
+     "two": "二軒（にけん）",
+     "en": "house, shop",
+     "note": "軒 counts buildings as premises: 一軒 いっけん, 三軒 さんげん. Bar-hopping is 二軒目 — 'the second place'."
+    },
+    {
+     "thing": "りんご",
+     "counter": "個",
+     "two": "二個（にこ）",
+     "en": "apple"
+    },
+    {
+     "thing": "電車",
+     "counter": "本",
+     "two": "二本（にほん）",
+     "en": "train service",
+     "note": "A scheduled service is 本: 一時間に三本 — three trains an hour. The physical carriages are counted with 両 りょう."
+    }
+   ]
+  },
+  {
+   "id": "dates",
+   "stage": "s3",
+   "kind": "transform",
+   "title": "Hours, months and days 時・月・日",
+   "blurb": "The same three digits — 4, 7, 9 — read differently in each of these three columns. This is the table to photograph.",
+   "note": "Read down the 4, 7 and 9 rows: 四時 よじ but 四月 しがつ; 七時 しちじ and 七月 しちがつ; 九時 くじ and 九月 くがつ. Days of the month from the 1st to the 10th, plus the 14th, the 20th and the 24th, use the old native numbers and simply have to be learned as words. Everything not in this table is regular — 十五日 じゅうごにち, 三十一日 さんじゅういちにち. Hours past 12 appear on timetables and tickets, which is why they are here.",
+   "columns": [
+    {
+     "key": "n",
+     "label": "number"
+    },
+    {
+     "key": "ji",
+     "label": "〜時 o'clock"
+    },
+    {
+     "key": "gatsu",
+     "label": "〜月 month"
+    },
+    {
+     "key": "nichi",
+     "label": "〜日 day of month"
+    }
+   ],
+   "items": [
+    {
+     "n": "1",
+     "ji": "いちじ",
+     "gatsu": "いちがつ",
+     "nichi": "ついたち",
+     "en": "one · the 1st",
+     "note": "一日 is ついたち as a date but いちにち as a length of time. 一日で終わった means it took one day; 一日に終わった means it finished on the first."
+    },
+    {
+     "n": "2",
+     "ji": "にじ",
+     "gatsu": "にがつ",
+     "nichi": "ふつか",
+     "en": "two · the 2nd"
+    },
+    {
+     "n": "3",
+     "ji": "さんじ",
+     "gatsu": "さんがつ",
+     "nichi": "みっか",
+     "en": "three · the 3rd"
+    },
+    {
+     "n": "4",
+     "ji": "よじ",
+     "gatsu": "しがつ",
+     "nichi": "よっか",
+     "en": "four · the 4th",
+     "note": "四時 is よじ — never よんじ, never しじ. Yet the month is しがつ. Same character, two readings, one row apart."
+    },
+    {
+     "n": "5",
+     "ji": "ごじ",
+     "gatsu": "ごがつ",
+     "nichi": "いつか",
+     "en": "five · the 5th"
+    },
+    {
+     "n": "6",
+     "ji": "ろくじ",
+     "gatsu": "ろくがつ",
+     "nichi": "むいか",
+     "en": "six · the 6th",
+     "note": "よっか (4th), むいか (6th) and ようか (8th) are the three that get mixed up, and they are hard to tell apart on the phone. Japanese people confirm dates by saying the weekday too."
+    },
+    {
+     "n": "7",
+     "ji": "しちじ",
+     "gatsu": "しちがつ",
+     "nichi": "なのか",
+     "en": "seven · the 7th",
+     "note": "七時 is officially しちじ; ななじ is widely said to avoid a clash with 一時 いちじ. The month is only ever しちがつ."
+    },
+    {
+     "n": "8",
+     "ji": "はちじ",
+     "gatsu": "はちがつ",
+     "nichi": "ようか",
+     "en": "eight · the 8th"
+    },
+    {
+     "n": "9",
+     "ji": "くじ",
+     "gatsu": "くがつ",
+     "nichi": "ここのか",
+     "en": "nine · the 9th",
+     "note": "九時 くじ and 九月 くがつ — きゅう is wrong in both, and this is the mistake that survives longest into fluency."
+    },
+    {
+     "n": "10",
+     "ji": "じゅうじ",
+     "gatsu": "じゅうがつ",
+     "nichi": "とおか",
+     "en": "ten · the 10th"
+    },
+    {
+     "n": "14",
+     "ji": "じゅうよじ",
+     "gatsu": "—",
+     "nichi": "じゅうよっか",
+     "en": "fourteen · the 14th",
+     "note": "The よっか of the 4th resurfaces in the 14th and the 24th. 14:00 on a ticket is じゅうよじ, same よ."
+    },
+    {
+     "n": "20",
+     "ji": "にじゅうじ",
+     "gatsu": "—",
+     "nichi": "はつか",
+     "en": "twenty · the 20th",
+     "note": "はつか is はた, the old word for twenty, plus か. The same はた survives in 二十歳 はたち, 'twenty years old' — and almost nowhere else."
+    },
+    {
+     "n": "24",
+     "ji": "にじゅうよじ",
+     "gatsu": "—",
+     "nichi": "にじゅうよっか",
+     "en": "twenty-four · the 24th"
+    }
+   ]
+  },
+  {
+   "id": "counting-live",
+   "stage": "s3",
+   "kind": "phrases",
+   "title": "Counting out loud 実践",
+   "blurb": "The counting you will actually do: ordering, buying tickets, booking a room, asking how long.",
+   "items": [
+    {
+     "ja": "すみません、これ三つください。",
+     "r": "すみません、これみっつください。",
+     "en": "Excuse me, could I have three of these?",
+     "note": "Point and use 〜つ. You do not need the correct counter to buy something, and this sentence works on almost any counter in the country."
+    },
+    {
+     "ja": "生ビール二杯とハイボール一杯お願いします。",
+     "r": "なまビールにはいとハイボールいっぱいおねがいします。",
+     "en": "Two draft beers and one highball, please."
+    },
+    {
+     "ja": "「何名様ですか。」「二人です。」",
+     "r": "なんめいさまですか。ふたりです。",
+     "en": "\"How many in your party?\" \"Two of us.\"",
+     "note": "名様 is what the staff say about you. Answer with 二人です — using 様 about yourself is the mistake, and 二名です sounds like you are filling in a form."
+    },
+    {
+     "ja": "大人二枚、子ども一枚お願いします。",
+     "r": "おとなにまい、こどもいちまいおねがいします。",
+     "en": "Two adults and one child, please.",
+     "note": "Tickets are 枚, and this is the entire transaction at a cinema, museum or aquarium."
+    },
+    {
+     "ja": "コピーを十枚取ってください。",
+     "r": "コピーをじゅうまいとってください。",
+     "en": "Please make ten copies."
+    },
+    {
+     "ja": "一泊二日で行きます。",
+     "r": "いっぱくふつかでいきます。",
+     "en": "We're going for one night, two days.",
+     "note": "Trips are counted in nights and days together — 二泊三日 is the standard weekend away, and hotel sites are laid out this way."
+    },
+    {
+     "ja": "駅から歩いて十分ぐらいです。",
+     "r": "えきからあるいてじゅっぷんぐらいです。",
+     "en": "It's about ten minutes on foot from the station.",
+     "note": "十分 here is じゅっぷん. Read じゅうぶん the same two characters mean 'enough' — 十分です is 'that's plenty'. The reading carries the whole meaning."
+    },
+    {
+     "ja": "ビールは何本ありますか。",
+     "r": "ビールはなんぼんありますか。",
+     "en": "How many beers are there?",
+     "note": "何 takes the same sound change as 三: 何本 なんぼん, 何匹 なんびき, 何杯 なんばい, 何分 なんぷん, 何階 なんがい."
+    },
+    {
+     "ja": "一人一個ずつ配ってください。",
+     "r": "ひとりいっこずつくばってください。",
+     "en": "Please hand out one each.",
+     "note": "ずつ means 'each' or 'apiece' and attaches straight to the counted amount: 少しずつ, 一人ずつ, 二枚ずつ."
+    },
+    {
+     "ja": "二泊三日でシングルを一部屋お願いします。",
+     "r": "にはくみっかでシングルをひとへやおねがいします。",
+     "en": "A single room for two nights and three days, please.",
+     "note": "Rooms take 部屋: 一部屋 ひとへや, 二部屋 ふたへや. Note 二泊 is にはく — the p- hardening after 1, 6, 8 and 10 does not reach 2."
+    }
+   ]
+  }
+ ]
+}

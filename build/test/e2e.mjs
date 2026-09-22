@@ -53,9 +53,18 @@ bad += await step('13-saved', '/saved');
 bad += await step('14-stats', '/stats');
 bad += await step('15-settings', '/settings');
 bad += await step('16-credits', '/credits');
-bad += await step('17-business', '/business');
-bad += await step('18-biz-keigo', '/business/keigo-irregulars');
-bad += await step('19-biz-email', '/business/email');
+bad += await step('17-tracks', '/levels');
+bad += await step('17b-track-travel', '/track/travel');
+bad += await step('17c-track-dialects', '/track/dialects');
+bad += await step('17d-track-casual', '/track/casual');
+bad += await step('17e-track-expressive', '/track/expressive');
+bad += await step('17f-track-academic', '/track/academic');
+bad += await step('17g-track-business', '/track/business');
+bad += await step('17h-travel-module', '/track/travel/airport');
+bad += await step('17i-dialect-drill', '/track/dialects/kansai-verbs');
+bad += await step('17-business-legacy', '/business');
+bad += await step('18-biz-keigo', '/track/business/keigo-irregulars');
+bad += await step('19-biz-email', '/track/business/email');
 
 // Interactive: enroll N5, then learn + review
 bad += await step('20-enroll', '/today', async () => {

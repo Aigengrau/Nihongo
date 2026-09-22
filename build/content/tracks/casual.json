@@ -1,0 +1,671 @@
+{
+ "id": "casual",
+ "title": "Real Casual Japanese",
+ "icon": "話",
+ "intro": "Textbook Japanese is polite Japanese, and polite Japanese holds people at a distance. Casual speech is not sloppy です・ます — it has its own grammar: particles vanish, の and よね carry whole meanings, and a good half of what you say is reaction noise. The hard part is not producing it but knowing when you are allowed to, because switching down uninvited is presumptuous, while staying formal with a friend quietly tells them you do not consider them one. Start this from N4; the particle and 相槌 modules keep paying off all the way to N1.",
+ "stages": [
+  {
+   "id": "s1",
+   "name": "Switching down",
+   "after": "N4",
+   "note": "You already know plain form. What you are missing is the social rule for using it — read this before you make Japanese friends, not after."
+  },
+  {
+   "id": "s2",
+   "name": "How it actually sounds",
+   "after": "N4",
+   "note": "The forms you learned, as they are really pronounced. Mostly a listening problem: you cannot catch 行かなきゃ if you only ever learned 行かなければ."
+  },
+  {
+   "id": "s3",
+   "name": "The emotional layer",
+   "after": "N3",
+   "note": "Final particles and reactions. This is the stage that makes you sound like a person instead of a translation."
+  },
+  {
+   "id": "s4",
+   "name": "Keeping the friendship",
+   "after": "N3",
+   "note": "Refusing and texting — the two places where casual Japanese can still cost you something."
+  }
+ ],
+ "modules": [
+  {
+   "id": "tameguchi",
+   "stage": "s1",
+   "kind": "phrases",
+   "title": "Dropping polite speech 敬語とタメ口",
+   "blurb": "Plain form between friends is called タメ口. Who may start it, and what it costs you to never start it.",
+   "items": [
+    {
+     "ja": "敬語じゃなくていいよ。",
+     "r": "けいごじゃなくていいよ。",
+     "en": "You don't have to be formal with me.",
+     "note": "This is an invitation, and it almost always comes from the older or more senior person. Wait for it rather than testing the water yourself."
+    },
+    {
+     "ja": "タメ口でいいよ。",
+     "r": "ためぐちでいいよ。",
+     "en": "Just talk to me normally.",
+     "note": "タメ口 is plain-form speech between equals (タメ is gamblers' slang for a tie — the same roll of the dice — hence 'same age'). The offer is usually made once, lightly. If you politely decline it, you have chosen the distance."
+    },
+    {
+     "ja": "もう友達だし、普通に話していいよ。",
+     "r": "もうともだちだし、ふつうにはなしていいよ。",
+     "en": "We're friends now — talk to me normally.",
+     "note": "普通に話す is what Japanese people actually say for 'speak casually'. It is far more common in conversation than タメ口で話す."
+    },
+    {
+     "ja": "じゃあ、お言葉に甘えて。",
+     "r": "じゃあ、おことばにあまえて。",
+     "en": "Well then, I'll take you up on that.",
+     "note": "The set reply to an offer you were hesitant to accept. It sounds slightly formal but is used between friends too — it shows you registered the offer as a kindness rather than just pocketing it."
+    },
+    {
+     "ja": "敬語やめない？",
+     "r": "けいごやめない？",
+     "en": "Shall we drop the formal speech?",
+     "note": "Only to someone your own age or younger, or someone you have genuinely become close to. Proposing this to a boss, a 先輩 or anyone clearly older is presumptuous no matter how friendly they have been."
+    },
+    {
+     "ja": "何年生まれ？",
+     "r": "なんねんうまれ？",
+     "en": "What year were you born?",
+     "note": "Asking age early is normal among younger Japanese people precisely because the answer decides who speaks casually to whom. It is not the rude question it can be in English."
+    },
+    {
+     "ja": "同い年だ！じゃあ敬語なしで話そう。",
+     "r": "おないどしだ！じゃあけいごなしではなそう。",
+     "en": "Same age! Let's drop the formal speech then.",
+     "note": "Being the same age is the clearest licence there is. Once it is established, plain form is expected in both directions."
+    },
+    {
+     "ja": "先輩・上司・お客さんには、ずっと敬語。",
+     "r": "せんぱい・じょうし・おきゃくさんには、ずっとけいご。",
+     "en": "With senpai, bosses and customers you stay polite — indefinitely.",
+     "note": "Warmth is not permission. Someone can joke with you for years and still expect です・ます. A change in the relationship gets announced; it is never assumed."
+    },
+    {
+     "ja": "ずっと敬語だと、ちょっと距離を感じる。",
+     "r": "ずっとけいごだと、ちょっときょりをかんじる。",
+     "en": "If you stay in polite speech, it feels a bit distant.",
+     "note": "The cost learners underestimate. With a friend your own age, です・ます is not the 'safe' option — it reads as holding them at arm's length, not as respect."
+    }
+   ]
+  },
+  {
+   "id": "register-swap",
+   "stage": "s1",
+   "kind": "transform",
+   "title": "Polite ⇄ casual 言い換え",
+   "blurb": "The same sentence in both registers. Converting on the fly is the actual skill — read the polite line, say the casual one.",
+   "note": "Casual is not just 'verb in plain form'. Three things happen at once: the です・ます ending drops, the particles disappear, and か is replaced by rising intonation. The particle drop is what your ear notices most.",
+   "columns": [
+    {
+     "key": "polite",
+     "label": "polite です・ます"
+    },
+    {
+     "key": "casual",
+     "label": "casual タメ口"
+    }
+   ],
+   "items": [
+    {
+     "polite": "何をしていますか。",
+     "casual": "何してる？",
+     "en": "What are you doing?",
+     "note": "Two changes at once: しています → してる, and を simply vanishes. Dropping particles is the single biggest thing that makes speech sound casual."
+    },
+    {
+     "polite": "明日は忙しいですか。",
+     "casual": "明日、忙しい？",
+     "en": "Are you busy tomorrow?",
+     "note": "No か. A plain form with か attached (忙しいか？) sounds rough, or like an interrogation."
+    },
+    {
+     "polite": "これは何ですか。",
+     "casual": "これ、何？",
+     "en": "What's this?",
+     "note": "Do not put だ in. 何だ？ is a challenge, not a question."
+    },
+    {
+     "polite": "わかりません。",
+     "casual": "わかんない。",
+     "en": "I don't get it.",
+     "note": "わからない → わかんない in speech. Fine spoken, never written in anything formal."
+    },
+    {
+     "polite": "すみません、遅れます。",
+     "casual": "ごめん、遅れる。",
+     "en": "Sorry, I'll be late.",
+     "note": "すみません to a close friend sounds stiff, or sarcastic. Friends get ごめん or ごめんね."
+    },
+    {
+     "polite": "そうですね。",
+     "casual": "そうだね。",
+     "en": "Yeah, true.",
+     "note": "そうですね often just buys time; そうだね agrees. If you actually need thinking time casually, stretch it: そうだなあ."
+    },
+    {
+     "polite": "行きましょう。",
+     "casual": "行こう。",
+     "en": "Let's go."
+    },
+    {
+     "polite": "食べてもいいですか。",
+     "casual": "食べていい？",
+     "en": "Mind if I eat?",
+     "note": "も drops as well. 食べてもいい？ is also fine and slightly more careful."
+    },
+    {
+     "polite": "どこに行きますか。",
+     "casual": "どこ行くの？",
+     "en": "Where are you off to?",
+     "note": "に drops, and の makes you sound interested rather than demanding. Bare どこ行く？ works but lands blunter."
+    },
+    {
+     "polite": "大丈夫ですか。",
+     "casual": "大丈夫？",
+     "en": "You okay?"
+    },
+    {
+     "polite": "知っていますか。",
+     "casual": "知ってる？",
+     "en": "Do you know about it?"
+    },
+    {
+     "polite": "明日、お時間ありますか。",
+     "casual": "明日、暇？",
+     "en": "Are you free tomorrow?",
+     "note": "暇 is the normal casual word for free time, but never upward: 暇ですか？ to a boss implies they have nothing to do."
+    },
+    {
+     "polite": "疲れましたね。",
+     "casual": "疲れたね。",
+     "en": "That was tiring, huh."
+    },
+    {
+     "polite": "ありがとうございます。",
+     "casual": "ありがとう。",
+     "en": "Thanks.",
+     "note": "あざす, a crushed ありがとうございます, exists but belongs to young men and part-time staff. Out of the right mouth it sounds like bad acting."
+    }
+   ]
+  },
+  {
+   "id": "contractions",
+   "stage": "s2",
+   "kind": "transform",
+   "title": "Contractions 縮約形",
+   "blurb": "The forms you learned, squeezed the way people actually pronounce them. Half of listening comprehension is just recognising these.",
+   "note": "None of these are wrong or lazy — they are the normal spoken pronunciations. What matters is that most of them do not belong in writing, so learn both directions: produce the left column on paper, the right column out loud.",
+   "columns": [
+    {
+     "key": "full",
+     "label": "full form 元の形"
+    },
+    {
+     "key": "short",
+     "label": "spoken 縮約形"
+    }
+   ],
+   "items": [
+    {
+     "full": "食べている",
+     "short": "食べてる",
+     "en": "is eating",
+     "note": "The い just drops. This one even survives into polite speech: 食べてます is normal in almost any conversation."
+    },
+    {
+     "full": "何をしているの",
+     "short": "何してんの",
+     "en": "what are you doing?",
+     "note": "〜ているの → 〜てんの (and を drops on the way). The る before の collapses to ん everywhere: やってるの→やってんの, 言ってるの→言ってんの."
+    },
+    {
+     "full": "読んでおく",
+     "short": "読んどく",
+     "en": "read it in advance",
+     "note": "〜ておく→〜とく, 〜でおく→〜どく. 買っておく→買っとく, やっておく→やっとく."
+    },
+    {
+     "full": "忘れてしまった",
+     "short": "忘れちゃった",
+     "en": "I went and forgot",
+     "note": "〜てしまう→〜ちゃう. It carries either 'completely' or 'oops' — here, clearly oops."
+    },
+    {
+     "full": "飲んでしまう",
+     "short": "飲んじゃう",
+     "en": "end up drinking it all",
+     "note": "After the voiced て-forms it is 〜でしまう→〜じゃう: 読んじゃう, 死んじゃう."
+    },
+    {
+     "full": "行かなければ",
+     "short": "行かなきゃ",
+     "en": "I've gotta go",
+     "note": "Usually the sentence stops right there, with いけない left unsaid. Finishing it (行かなきゃいけない) sounds more deliberate."
+    },
+    {
+     "full": "行かなくては",
+     "short": "行かなくちゃ",
+     "en": "I have to go",
+     "note": "〜なくては→〜なくちゃ. Interchangeable with なきゃ; なくちゃ feels slightly softer and a touch more feminine, but only slightly."
+    },
+    {
+     "full": "わからない",
+     "short": "わかんない",
+     "en": "dunno",
+     "note": "ら→ん before ない. Same with つまらない→つまんない, 変わらない→変わんない, 信じられない→信じらんない."
+    },
+    {
+     "full": "学生ではない",
+     "short": "学生じゃない",
+     "en": "isn't a student",
+     "note": "ではない→じゃない is so complete that ではない now reads as written or oratorical, not merely polite."
+    },
+    {
+     "full": "食べられる",
+     "short": "食べれる",
+     "en": "can eat",
+     "note": "ら抜き言葉. Standard in speech across every age group now, and still marked wrong in writing and by some older people. Note it makes 'can eat' and 'is eaten' distinguishable, which is why it won."
+    },
+    {
+     "full": "すごい",
+     "short": "すげえ",
+     "en": "amazing",
+     "note": "〜ai crushes to 〜ee: うまい→うめえ, やばい→やべえ, 高い→たけえ. Rough and strongly male. Women use it, but usually for comic effect."
+    },
+    {
+     "full": "というか",
+     "short": "てか",
+     "en": "I mean… / actually",
+     "note": "Opens a sentence that redirects what was just said. てゆーか and つーか are the same word; てか is the shortest and most common in texts."
+    },
+    {
+     "full": "それでは",
+     "short": "それじゃ",
+     "en": "well then",
+     "note": "The same squeeze keeps going: それでは→それじゃ→じゃあ→じゃ. All four are alive, in descending order of formality."
+    },
+    {
+     "full": "本当に",
+     "short": "ほんとに",
+     "en": "really",
+     "note": "Spelled ほんとう, said ほんと by nearly everyone. ほんっとに with the small っ is the emphatic version."
+    },
+    {
+     "full": "すみません",
+     "short": "すいません",
+     "en": "sorry / excuse me",
+     "note": "すいません is how most people actually pronounce it. Perfectly normal spoken, but write すみません."
+    }
+   ]
+  },
+  {
+   "id": "spoken-shapes",
+   "stage": "s2",
+   "kind": "phrases",
+   "title": "Spoken shapes 話し言葉",
+   "blurb": "じゃん, っす, って, trailing けど — the little structures that carry casual conversation and that textbooks skip.",
+   "items": [
+    {
+     "ja": "これ、おいしいじゃん。",
+     "r": "これ、おいしいじゃん。",
+     "en": "Hey, this is good.",
+     "note": "じゃん is じゃない used to push agreement — you are telling someone what they should already think. It comes out of the Tōkai and Kōshin regions and spread nationally through Yokohama; young speakers everywhere use it now. Never aim it upward."
+    },
+    {
+     "ja": "だから言ったじゃん。",
+     "r": "だからいったじゃん。",
+     "en": "See, I told you.",
+     "note": "The complaint flavour of じゃん — a mild accusation. Fine with friends, genuinely rude to a 先輩."
+    },
+    {
+     "ja": "大丈夫っす。",
+     "r": "だいじょうぶっす。",
+     "en": "I'm good, thanks.",
+     "note": "っす is です crushed flat: respectful in intention, relaxed in sound. It is heavily male and belongs to sports clubs, kitchens, trades and young office juniors talking to a 先輩 they are comfortable with. Women rarely use it, and in a formal company it reads as sloppy. Never to a client or a teacher."
+    },
+    {
+     "ja": "田中、今日来ないって。",
+     "r": "たなか、きょうこないって。",
+     "en": "Tanaka says he's not coming today.",
+     "note": "って is the casual と言っていた, with the source placed in front. It is how almost all secondhand information gets reported in speech."
+    },
+    {
+     "ja": "それって何？",
+     "r": "それってなに？",
+     "en": "What's that thing you just mentioned?",
+     "note": "って also replaces は as a topic marker, and it points specifically at something just said. それは何？ is a neutral question; それって何？ picks up their words."
+    },
+    {
+     "ja": "明日でもいいんだけど。",
+     "r": "あしたでもいいんだけど。",
+     "en": "Tomorrow would work for me too, if that's alright…",
+     "note": "A sentence left hanging on けど is not unfinished — the trailing けど is the softener. Completing the thought would make it pushy."
+    },
+    {
+     "ja": "疲れてるし、今日はやめとく。",
+     "r": "つかれてるし、きょうはやめとく。",
+     "en": "I'm tired, so I'll skip today.",
+     "note": "し gives one reason while hinting there are others you are not listing. Gentler than から, which sounds like you are arguing a case."
+    },
+    {
+     "ja": "どうしたの？",
+     "r": "どうしたの？",
+     "en": "What's up? / What happened?",
+     "note": "の asks for an explanation and sounds concerned. どうした？ without it is blunter and reads as masculine."
+    },
+    {
+     "ja": "明日、休みなんだ。",
+     "r": "あした、やすみなんだ。",
+     "en": "I'm off tomorrow, actually.",
+     "note": "な appears before んだ after nouns and な-adjectives — 休みなんだ, 静かなんだ — but not after verbs or い-adjectives: 行くんだ, 忙しいんだ."
+    },
+    {
+     "ja": "なんか、うまく言えないんだけどさ。",
+     "r": "なんか、うまくいえないんだけどさ。",
+     "en": "I dunno, I can't put it well, but…",
+     "note": "なんか is the spoken 'like' or 'sort of'. It buys a beat and hedges what follows. One per sentence is natural; three makes you sound scattered, exactly as in English."
+    }
+   ]
+  },
+  {
+   "id": "particles",
+   "stage": "s3",
+   "kind": "phrases",
+   "title": "Sentence-final particles 終助詞",
+   "blurb": "The layer that carries how you feel. Get these wrong and grammatically perfect Japanese still sounds cold or bossy.",
+   "items": [
+    {
+     "ja": "明日、試験だよ。",
+     "r": "あした、しけんだよ。",
+     "en": "There's a test tomorrow, you know.",
+     "note": "よ delivers information the listener does not have. Attached to a bare command (早くしろよ) it turns pushy, but on a statement it is neutral for everyone."
+    },
+    {
+     "ja": "今日は寒いね。",
+     "r": "きょうはさむいね。",
+     "en": "Cold today, isn't it.",
+     "note": "ね checks that you are both in the same place emotionally. Constant よ with no ね is the clearest marker of a non-native speaker — it makes you sound like you are lecturing."
+    },
+    {
+     "ja": "そうだよね。",
+     "r": "そうだよね。",
+     "en": "Yeah, exactly.",
+     "note": "よね asserts and checks at once: 'I'm telling you this, and you agree, right?' The most useful particle combination in the language."
+    },
+    {
+     "ja": "寒いな。",
+     "r": "さむいな。",
+     "en": "Man, it's cold.",
+     "note": "な is ね turned inward — you are saying it to yourself, out loud, and anyone may do that. Aimed at another person it hardens: 早くしろよな is rough and male, and 行くな is a different な entirely ('don't go')."
+    },
+    {
+     "ja": "そうだなあ。",
+     "r": "そうだなあ。",
+     "en": "Hmm, let me think.",
+     "note": "Stretching to なあ buys thinking time and is completely safe for any speaker. Its polite twin is そうですねえ."
+    },
+    {
+     "ja": "知らんわ。",
+     "r": "しらんわ。",
+     "en": "How should I know.",
+     "note": "Textbooks call わ feminine. That is the rising Tokyo-drama わ (そうだわ), which now sounds dated or theatrical from anyone under fifty. The flat, falling わ — 知らんわ, 疲れたわ, しんどいわ — is ordinary casual speech: male-leaning in Tokyo, used by everyone in Kansai. Same character, two unrelated particles."
+    },
+    {
+     "ja": "よし、やるぞ。",
+     "r": "よし、やるぞ。",
+     "en": "Right, let's do this.",
+     "note": "ぞ is real, but mostly self-directed psyching-up rather than something you aim at a person, and it is male-leaning. ぜ (行くぜ) is far rarer off-screen than on it — used to someone's face it sounds like you are doing a voice."
+    },
+    {
+     "ja": "明日、雨かな。",
+     "r": "あした、あめかな。",
+     "en": "Wonder if it'll rain tomorrow.",
+     "note": "かな wonders out loud; かなあ wonders longer. It is also the softest way to ask a favour: 手伝ってくれるかな — 'any chance you'd help?'"
+    },
+    {
+     "ja": "明日って休みだっけ？",
+     "r": "あしたってやすみだっけ？",
+     "en": "Tomorrow's a day off — right? I've forgotten.",
+     "note": "っけ marks something you once knew and have mislaid. Fine about dates and plans; used about a person's name to their face (名前、何だっけ？) it stings."
+    },
+    {
+     "ja": "昨日さ、駅で田中に会ってさ。",
+     "r": "きのうさ、えきでたなかにあってさ。",
+     "en": "So yesterday, right, I ran into Tanaka at the station…",
+     "note": "さ chops a story into beats and holds the floor while you tell it. Common in Tokyo speech from all genders; stacked too thickly it reads as young or pushy."
+    }
+   ]
+  },
+  {
+   "id": "aizuchi",
+   "stage": "s3",
+   "kind": "phrases",
+   "title": "Listening noises 相槌",
+   "blurb": "Japanese listening is loud. Going quiet while someone talks does not read as polite attention — it reads as boredom or disagreement.",
+   "items": [
+    {
+     "ja": "うん。うんうん。",
+     "r": "うん。うんうん。",
+     "en": "Mm. Mm-hm.",
+     "note": "Say it every few seconds, far more often than you would say 'uh-huh' in English. The polite equivalent is はい, used identically — on the phone people say はい almost continuously, and silence makes the other person stop and ask if you are still there."
+    },
+    {
+     "ja": "そうなんだ。",
+     "r": "そうなんだ。",
+     "en": "Oh, really.",
+     "note": "The workhorse response to new information. Falling tone means 'I hear you'; rising そうなんだ？ means mild surprise. Polite version: そうなんですね."
+    },
+    {
+     "ja": "へえ〜。",
+     "r": "へえ〜。",
+     "en": "Huh, interesting.",
+     "note": "Genuine mild surprise. Short and flat (へえ。) reads as bored — the stretch is what makes it friendly."
+    },
+    {
+     "ja": "そうそう。",
+     "r": "そうそう。",
+     "en": "Yes, exactly that.",
+     "note": "Specifically confirms that the other person has correctly guessed or restated what you meant. Not a general 'yes'."
+    },
+    {
+     "ja": "たしかに。",
+     "r": "たしかに。",
+     "en": "True. Fair point.",
+     "note": "Concedes the point without committing to full agreement. Extremely common among adults and the safest thing to say about an opinion you do not actually share."
+    },
+    {
+     "ja": "なるほど。",
+     "r": "なるほど。",
+     "en": "Ah, that makes sense.",
+     "note": "Signals you have followed a reason or explanation. It is mildly evaluative, so upward it can sound like you are grading your boss — and なるほどですね is a famous piece of bad business Japanese. Use おっしゃる通りです or 勉強になります instead."
+    },
+    {
+     "ja": "わかる〜。",
+     "r": "わかる〜。",
+     "en": "Right? I feel that.",
+     "note": "Not 'I understand' but 'I have felt exactly that'. The stretched vowel is doing the empathy; flat わかる。 sounds like a factual claim."
+    },
+    {
+     "ja": "まじで？",
+     "r": "まじで？",
+     "en": "Seriously?",
+     "note": "The everyday surprise reaction, used by all genders and well past thirty among friends. Casual only — never to a boss, a client or a teacher. まじ？ alone is blunter; 本当に？ is the version that is safe everywhere."
+    },
+    {
+     "ja": "まじか。",
+     "r": "まじか。",
+     "en": "No way.",
+     "note": "Aimed more at yourself than at the other person, usually on hearing something bad. Male-leaning but widely used."
+    },
+    {
+     "ja": "やばい。",
+     "r": "やばい。",
+     "en": "Whoa. / That's insane.",
+     "note": "Originally 'dangerous', now a pure intensity marker that can be positive or negative: やばい、おいしい (incredible) and やばい、遅刻する (I'm screwed) are both normal. Tone carries the entire meaning. Fine between friends of any gender; at work it marks you as young and unpolished. やば。 is the clipped form, やべえ the rough male one."
+    },
+    {
+     "ja": "それな。",
+     "r": "それな。",
+     "en": "Right?? Exactly.",
+     "note": "Strong agreement, and firmly young — roughly teens through twenties. Older speakers do use it, but usually knowingly; said straight past about thirty it can sound like you are reaching."
+    },
+    {
+     "ja": "大変だったね。",
+     "r": "たいへんだったね。",
+     "en": "That must have been rough.",
+     "note": "Sympathy is expected out loud and promptly. Letting someone's bad news sit without a reaction is read as indifference, not as giving them space."
+    }
+   ]
+  },
+  {
+   "id": "kotowari",
+   "stage": "s4",
+   "kind": "template",
+   "title": "Turning down a friend 断り方",
+   "blurb": "A flat 行かない ends the invitation and dents the friendship. The casual refusal has the same shape as the business one — react, reason, offer an alternative, close warmly.",
+   "slots": [
+    {
+     "slot": "反応",
+     "en": "React first",
+     "options": [
+      "誘ってくれてありがとう！",
+      "あー、めっちゃ行きたい！",
+      "え、楽しそう！"
+     ],
+     "note": "React to the invitation before you refuse it. Leading with your reason makes the refusal about your calendar instead of about them, which is what stings."
+    },
+    {
+     "slot": "理由",
+     "en": "Reason",
+     "options": [
+      "でもその日、用事があって。",
+      "でもちょっと今週きつくて。",
+      "その日バイトなんだよね。"
+     ],
+     "note": "Vague is normal and expected. 用事があって covers anything. Over-explaining is what makes an excuse sound invented."
+    },
+    {
+     "slot": "代案",
+     "en": "Leave the door open",
+     "options": [
+      "また誘って！",
+      "来週ならいつでも空いてるよ。",
+      "次は絶対行く！"
+     ],
+     "note": "This part is not decoration. Without an alternative, a Japanese friend may read the refusal as 'stop asking me' and quietly stop asking."
+    },
+    {
+     "slot": "締め",
+     "en": "Close",
+     "options": [
+      "ほんとごめん！",
+      "楽しんできてね〜",
+      "ごめんね〜"
+     ],
+     "note": "楽しんできてね sends them off warmly and is the most natural close when you are not coming. The stretched 〜 is tone of voice; without it the line reads clipped."
+    }
+   ],
+   "cushions": [
+    {
+     "ja": "ちょっと…",
+     "r": "ちょっと…",
+     "en": "Ah, that's a bit… — the refusal everyone understands without you finishing it"
+    },
+    {
+     "ja": "行けたら行く",
+     "r": "いけたらいく",
+     "en": "I'll come if I can — widely understood, especially in Kansai, as a polite no"
+    },
+    {
+     "ja": "予定が合わなくて",
+     "r": "よていがあわなくて",
+     "en": "our schedules just don't line up"
+    },
+    {
+     "ja": "また今度ね",
+     "r": "またこんどね",
+     "en": "next time, then"
+    },
+    {
+     "ja": "気持ちだけもらっとくね",
+     "r": "きもちだけもらっとくね",
+     "en": "I'll take the thought, if not the thing — for turning down a gift or a favour"
+    }
+   ]
+  },
+  {
+   "id": "texting",
+   "stage": "s4",
+   "kind": "phrases",
+   "title": "Texting 文字のやりとり",
+   "blurb": "LINE Japanese is its own dialect: shorter, warmer, and full of marks that exist only in writing.",
+   "items": [
+    {
+     "ja": "了解！",
+     "r": "りょうかい！",
+     "en": "Got it!",
+     "note": "Perfect to a friend. Sent upward at work it is considered curt — reply 承知しました to a boss or client. 了解です softens it, but not enough for everyone. Teens shorten it all the way to just り."
+    },
+    {
+     "ja": "おつ！",
+     "r": "おつ！",
+     "en": "Nice work. / Later.",
+     "note": "Clipped お疲れ様. Fine to friends and club mates; write お疲れ様です in full to anyone senior."
+    },
+    {
+     "ja": "草",
+     "r": "くさ",
+     "en": "lol (literally 'grass')",
+     "note": "The three ways to laugh in writing. w comes from 笑い: one w is a token chuckle, www is real laughter. 笑 tacked on the end (なにそれ笑) is the softer, all-ages version. 草 began as a joke about wwww looking like a row of grass and is now a word in its own right, said out loud as well as typed: 草, or 草生える. None of them go anywhere near a work email."
+    },
+    {
+     "ja": "ごめん、今電車。あとで連絡する！",
+     "r": "ごめん、いまでんしゃ。あとでれんらくする！",
+     "en": "Sorry, on the train — I'll message you later!",
+     "note": "Texts drop verbs wholesale. 今電車 is 今電車に乗っている with everything predictable removed."
+    },
+    {
+     "ja": "何時集合？",
+     "r": "なんじしゅうごう？",
+     "en": "What time are we meeting?",
+     "note": "集合 is the ordinary word for meeting up at a set time and place. It looks stiff on the page but is completely casual in use."
+    },
+    {
+     "ja": "既読スルー",
+     "r": "きどくスルー",
+     "en": "leaving a message read and unanswered",
+     "note": "LINE shows the sender the moment you open their message, so silence is visible in a way it is not elsewhere. 既読スルー is a real small injury between friends; a one-character おけ costs nothing."
+    },
+    {
+     "ja": "おけ",
+     "r": "おけ",
+     "en": "ok",
+     "note": "OK → おけ, and in typed form おk (the K never converted). Harmless and friendly among people your own age; with the age gap wrong it dates you instantly in either direction."
+    },
+    {
+     "ja": "返事遅くなってごめん！",
+     "r": "へんじおそくなってごめん！",
+     "en": "Sorry for the slow reply!",
+     "note": "Expected after a day or so of silence, even between close friends. The polite version is 返信が遅くなり申し訳ありません."
+    },
+    {
+     "ja": "なるはや",
+     "r": "なるはや",
+     "en": "ASAP",
+     "note": "From なるべく早く, and common in casual work chat too. Related clips: とりま (from とりあえず、まあ — 'for now'), ワンチャン ('there's a chance that…'), ガチ ('for real', as in ガチで面白い)."
+    },
+    {
+     "ja": "ありがとう〜！",
+     "r": "ありがとう〜！",
+     "en": "Thank youuu!",
+     "note": "The 〜 is tone of voice in writing: it lengthens the vowel and warms up anything. A bare ありがとう。 in a text, with a full stop, can read as cold — which is why Japanese texts so often have no full stops at all."
+    }
+   ]
+  }
+ ]
+}

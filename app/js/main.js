@@ -16,14 +16,14 @@ const routes = [
   [/^\/today$/, () => import('./screens/home.js').then((m) => m.today)],
   [/^\/levels$/, () => import('./screens/home.js').then((m) => m.levels)],
   [/^\/level\/(N[1-5])$/, () => import('./screens/home.js').then((m) => m.level)],
-  [/^\/words\/(N[1-5])$/, () => import('./screens/browse.js').then((m) => m.words)],
-  [/^\/kanji\/(N[1-5])$/, () => import('./screens/browse.js').then((m) => m.kanjiList)],
+  [/^\/words\/(N[1-5])(?:\/(list|cards|quiz|match|listen))?$/, () => import('./screens/browse.js').then((m) => m.words)],
+  [/^\/kanji\/(N[1-5])(?:\/(list|cards|quiz|match|listen))?$/, () => import('./screens/browse.js').then((m) => m.kanjiList)],
   [/^\/grammar\/(N[1-5])$/, () => import('./screens/browse.js').then((m) => m.grammarList)],
   [/^\/grammar\/(N[1-5])\/(\d+)$/, () => import('./screens/browse.js').then((m) => m.grammarPoint)],
   [/^\/kana$/, () => import('./screens/browse.js').then((m) => m.kana)],
   [/^\/conjugate\/(N[1-5])$/, () => import('./screens/browse.js').then((m) => m.conjugate)],
   [/^\/review(?:\/(.+))?$/, () => import('./screens/review.js').then((m) => m.review)],
-  [/^\/learn\/(N[1-5])$/, () => import('./screens/review.js').then((m) => m.learn)],
+  [/^\/learn\/(N[1-5])(?:\/(kanji))?$/, () => import('./screens/review.js').then((m) => m.learn)],
   [/^\/produce$/, () => import('./screens/produce.js').then((m) => m.produce)],
   [/^\/watch(?:\/(N[1-5]))?$/, () => import('./screens/watch.js').then((m) => m.list)],
   [/^\/watch\/v\/([\w-]+)$/, () => import('./screens/watch.js').then((m) => m.player)],
@@ -35,11 +35,15 @@ const routes = [
   [/^\/stats$/, () => import('./screens/me.js').then((m) => m.stats)],
   [/^\/settings$/, () => import('./screens/me.js').then((m) => m.settings)],
   [/^\/credits$/, () => import('./screens/me.js').then((m) => m.credits)],
-  [/^\/business$/, () => import('./screens/business.js').then((m) => m.home)],
-  [/^\/business\/(.+)$/, () => import('./screens/business.js').then((m) => m.module)],
+  [/^\/tracks$/, () => import('./screens/tracks.js').then((m) => m.hub)],
+  [/^\/track\/([\w-]+)$/, () => import('./screens/tracks.js').then((m) => m.track)],
+  [/^\/track\/([\w-]+)\/([\w-]+)$/, () => import('./screens/tracks.js').then((m) => m.module)],
+  // the old business-only URLs still work
+  [/^\/business$/, () => import('./screens/tracks.js').then((m) => (a) => m.track({ ...a, params: ['business'] }))],
+  [/^\/business\/([\w-]+)$/, () => import('./screens/tracks.js').then((m) => (a) => m.module({ ...a, params: ['business', a.params[0]] }))],
 ];
 
-const TABS = { today: /^\/today/, levels: /^\/(levels|level|words|kanji|grammar|kana|watch|read|learn|conjugate|business|produce|listen)/, saved: /^\/saved/, stats: /^\/(stats|settings|credits)/ };
+const TABS = { today: /^\/today/, levels: /^\/(levels|level|words|kanji|grammar|kana|watch|read|learn|conjugate|business|tracks|track|produce|listen)/, saved: /^\/saved/, stats: /^\/(stats|settings|credits)/ };
 
 export const go = (path, replace = false) => {
   if (replace) location.replace(`#${path}`);

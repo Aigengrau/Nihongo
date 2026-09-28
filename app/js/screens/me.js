@@ -1,7 +1,8 @@
 // Saved words, stats, settings, credits.
 import * as data from '../data.js';
 import * as store from '../store.js';
-import { esc, ruby, toast, openWordSheet, canSpeak } from '../ui.js';
+import { esc, ruby, toast, openWordSheet, canSpeak, speak, SPEECH_RATES, getSpeechRate, setSpeechRate, rateLabel } from '../ui.js';
+import * as register from '../register.js';
 import { inventory, streak, history, stage, STAGES, today as todayCounts } from '../progress.js';
 import { humanInterval, STATE } from '../srs.js';
 
@@ -166,6 +167,8 @@ export async function settings({ view, setChrome }) {
     store.setting('furigana', 'auto'), store.setting('newPerDay', 10),
     store.setting('theme', 'system'), store.setting('reviewCap', 120),
   ]);
+  await register.ready();
+  const on = await register.enabledTags();
   const persist = await store.requestPersistence();
   const { isInstalled, isIOS, installable, promptInstall } = await import('../main.js');
   const lastBackup = await store.get('progress', 'lastBackup');
@@ -201,6 +204,35 @@ export async function settings({ view, setChrome }) {
       </div>
     </div>
 
+    <h2 class="section-title">Speech</h2>
+    <div class="card">
+      <div class="switch">
+        <div><div>Speaking speed</div>
+          <div class="small faint">Used everywhere — cards, stories, Listen, drills</div></div>
+        <select id="rate" class="btn btn-sm">
+          ${SPEECH_RATES.map((r) => `<option value="${r}" ${r === getSpeechRate() ? 'selected' : ''}>${rateLabel(r)}</option>`).join('')}
+        </select>
+      </div>
+      ${canSpeak() ? `<button class="btn btn-block btn-ghost" id="tryRate" style="margin-top:8px" lang="ja">Try it — 日本語を勉強しています</button>` : ''}
+    </div>
+
+    <h2 class="section-title">Casual and dialect</h2>
+    <div class="card">
+      <p class="small muted">Mark these forms wherever they appear, so you can tell at a glance
+      what not to say at work. Tap a marked word for the explanation.</p>
+      <div style="margin-top:10px">
+        ${['casual', ...register.DIALECTS].map((t) => {
+          const l = register.LABELS[t];
+          return `<label class="switch" style="border-top:1px solid var(--line)">
+            <div class="row" style="gap:8px">${register.badge(t)}
+              <div><div>${esc(l.name)}</div><div class="small faint">${esc(l.hint)}</div></div></div>
+            <input type="checkbox" data-reg="${t}" ${on.has(t) ? 'checked' : ''}>
+          </label>`;
+        }).join('')}
+      </div>
+      <a class="btn btn-block btn-ghost" style="margin-top:10px" href="#/marked">See every marked form</a>
+    </div>
+
     <h2 class="section-title">Appearance</h2>
     <div class="card"><div class="switch">
       <div>Theme</div>
@@ -233,6 +265,16 @@ export async function settings({ view, setChrome }) {
     if (!installable()) return toast('Use your browser menu → Install app');
     await promptInstall();
   });
+  view.querySelector('#rate').addEventListener('change', async (e) => {
+    await setSpeechRate(+e.target.value);
+    speak('日本語を勉強しています');
+  });
+  view.querySelector('#tryRate')?.addEventListener('click', () => speak('日本語を勉強しています'));
+  view.querySelectorAll('[data-reg]').forEach((cb) => cb.addEventListener('change', async () => {
+    const tags = [...view.querySelectorAll('[data-reg]')].filter((x) => x.checked).map((x) => x.dataset.reg);
+    await register.setEnabledTags(tags);
+    toast(tags.length ? `Marking ${tags.length} register${tags.length === 1 ? '' : 's'}` : 'Marking off');
+  }));
   view.querySelector('#npd').addEventListener('change', (e) => store.setSetting('newPerDay', +e.target.value));
   view.querySelector('#cap').addEventListener('change', (e) => store.setSetting('reviewCap', +e.target.value));
   view.querySelector('#furi').addEventListener('change', (e) => store.setSetting('furigana', e.target.value));
@@ -253,6 +295,38 @@ export async function settings({ view, setChrome }) {
       toast('Restored — merged with what you had');
       window.dispatchEvent(new CustomEvent('nihongo:progress'));
     } catch (err) { toast(`Could not restore: ${err.message}`, 4000); }
+  });
+}
+
+// ---------------------------------------------------------------- marked forms
+export async function marked({ view, setChrome }) {
+  setChrome({ title: 'Casual & dialect', back: true });
+  await register.ready();
+  const on = await register.enabledTags();
+  const rows = register.all();
+  const groups = {};
+  for (const r of rows) for (const t of r.t) (groups[t] ||= []).push(r);
+
+  view.innerHTML = `
+    <p class="muted small">${rows.length} forms the app marks as casual or dialect.
+    ${on.size ? '' : '<b>Marking is currently off</b> — turn it on in Settings.'}</p>
+    ${Object.entries(groups).map(([tag, list]) => `
+      <h2 class="section-title">${register.badge(tag)} ${esc(register.LABELS[tag]?.name || tag)} · ${list.length}</h2>
+      <div class="list">
+        ${list.map((r) => `<button class="wrow" data-w="${esc(r.form)}">
+          <span class="wrow-main">
+            <span class="wrow-jp" lang="ja">${esc(r.form)}</span>
+            <span class="wrow-en">${esc(r.en || '')}</span>
+          </span>
+          ${canSpeak() ? '<span class="tile-end small">🔊</span>' : ''}
+        </button>`).join('')}
+      </div>`).join('')}`;
+
+  view.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-w]');
+    if (!b) return;
+    speak(b.dataset.w);
+    openWordSheet(b.dataset.w);
   });
 }
 

@@ -2,10 +2,37 @@
 import * as data from '../data.js';
 import * as store from '../store.js';
 import { esc, ruby, toast } from '../ui.js';
-import { inventory, today as todayCounts, streak, newAllowance, enrollLevel, enrollKanji, stage, STAGES } from '../progress.js';
+import { inventory, today as todayCounts, streak, newAllowance, remainingNew, enrollLevel, enrollKanji, stage, STAGES } from '../progress.js';
 import { eligible as prodEligible } from './produce.js';
 
 const CHEV = `<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+/**
+ * The "learn new X" tile. Shows the same number the learn screen will honour —
+ * these used to disagree, so the tile offered ten words and the screen then
+ * said they were paused. A finished daily goal stays tappable, because the cap
+ * is a recommendation, not a lock.
+ */
+function learnTile(icon, noun, href, rem, sub) {
+  if (rem.left > 0) {
+    return `<a class="tile" href="${href}">
+      <span class="tile-ico">${icon}</span>
+      <span class="tile-main"><span class="tile-title">Learn ${rem.left} new ${noun}</span>
+        <span class="tile-sub">${sub}</span></span>
+      <span class="tile-end">${CHEV}</span></a>`;
+  }
+  if (rem.reason === 'backlog') {
+    return `<div class="tile" style="opacity:.6">
+      <span class="tile-ico">${icon}</span>
+      <span class="tile-main"><span class="tile-title">New ${noun} paused</span>
+        <span class="tile-sub">${rem.due} review${rem.due === 1 ? '' : 's'} waiting — clear those first</span></span></div>`;
+  }
+  return `<a class="tile" href="${href}">
+    <span class="tile-ico">${icon}</span>
+    <span class="tile-main"><span class="tile-title">Today's ${noun} done ✓</span>
+      <span class="tile-sub">${rem.doneToday} of ${rem.cap} · tap to carry on anyway</span></span>
+    <span class="tile-end">${CHEV}</span></a>`;
+}
 
 // ---------------------------------------------------------------- Today
 export async function today({ view, setChrome }) {
@@ -16,8 +43,9 @@ export async function today({ view, setChrome }) {
     </a>`,
   });
 
-  const [inv, counts, st, lstats, prod] = await Promise.all([
+  const [inv, counts, st, lstats, prod, remWords, remKanji] = await Promise.all([
     inventory(), todayCounts(), streak(), data.levelStats(), prodEligible().catch(() => []),
+    remainingNew('vocab'), remainingNew('kanji'),
   ]);
   const base = await store.setting('newPerDay', 10);
   const allowance = newAllowance(inv.due, base);
@@ -63,24 +91,10 @@ export async function today({ view, setChrome }) {
         </div>`}
 
       <div class="tiles" style="margin-top:10px">
-        ${allowance > 0
-          ? `<a class="tile" href="#/learn/${esc(level)}">
-               <span class="tile-ico">新</span>
-               <span class="tile-main"><span class="tile-title">Learn ${allowance} new words</span>
-                 <span class="tile-sub">${esc(level)} · ${counts.new} learned today</span></span>
-               <span class="tile-end">${CHEV}</span></a>`
-          : `<div class="tile" style="opacity:.6">
-               <span class="tile-ico">新</span>
-               <span class="tile-main"><span class="tile-title">New words paused</span>
-                 <span class="tile-sub">Catch up on reviews to unlock them</span></span></div>`}
-
-        ${allowance > 0
-          ? `<a class="tile" href="#/learn/${esc(level)}/kanji">
-               <span class="tile-ico">漢</span>
-               <span class="tile-main"><span class="tile-title">Learn ${Math.min(10, allowance)} new kanji</span>
-                 <span class="tile-sub">${esc(level)} · ${kanjiKnown} of ${lstats[level]?.kanji ?? 0} met</span></span>
-               <span class="tile-end">${CHEV}</span></a>`
-          : ''}
+        ${learnTile('新', 'words', `#/learn/${esc(level)}`, remWords,
+          `${esc(level)} · ${counts.new} learned today`)}
+        ${learnTile('漢', 'kanji', `#/learn/${esc(level)}/kanji`, remKanji,
+          `${esc(level)} · ${kanjiKnown} of ${lstats[level]?.kanji ?? 0} met`)}
 
         <a class="tile" href="#/grammar/${esc(level)}">
           <span class="tile-ico">文</span>

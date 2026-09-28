@@ -3,6 +3,7 @@ import * as store from './store.js';
 import * as dict from './dict.js';
 import { tokenize } from './tokenize.js';
 import { furigana as furiganaSegs } from './furigana.js';
+import * as register from './register.js';
 import * as data from './data.js';
 
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
@@ -48,15 +49,41 @@ if (typeof speechSynthesis !== 'undefined') {
   if (!voices.length) voices = null;
 }
 
-/** Speak Japanese. Must be called inside the tap handler or iOS ignores it. */
-export function speak(text) {
+// One speech rate for the whole app, so changing it in Settings or on the
+// Listen player changes it everywhere — review cards, word sheets, drills.
+export const SPEECH_RATES = [0.5, 0.65, 0.8, 1, 1.25, 1.5, 2];
+let speechRate = 0.9;
+store.setting('speechRate', 0.9).then((r) => { speechRate = Number(r) || 0.9; });
+
+export const getSpeechRate = () => speechRate;
+export async function setSpeechRate(r) {
+  speechRate = Number(r) || 1;
+  await store.setSetting('speechRate', speechRate);
+  window.dispatchEvent(new CustomEvent('nihongo:rate', { detail: speechRate }));
+  return speechRate;
+}
+/** Step to the next rate in the list and return it. */
+export function cycleSpeechRate(dir = 1) {
+  const i = SPEECH_RATES.indexOf(speechRate);
+  const next = SPEECH_RATES[((i < 0 ? 3 : i) + dir + SPEECH_RATES.length) % SPEECH_RATES.length];
+  setSpeechRate(next);
+  return next;
+}
+export const rateLabel = (r = speechRate) => `${String(r).replace(/\.0$/, '')}×`;
+
+/**
+ * Speak Japanese. Must be called inside the tap handler or iOS ignores it.
+ * @param {string} text
+ * @param {number} [rate] override the global rate for this utterance
+ */
+export function speak(text, rate) {
   try {
     if (!window.speechSynthesis) return false;
     const v = jaVoice();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'ja-JP';
     if (v) u.voice = v;
-    u.rate = 0.9;
+    u.rate = rate ?? speechRate;
     speechSynthesis.cancel();
     speechSynthesis.speak(u);
     return true;
@@ -124,7 +151,9 @@ export function tappable(text, { tokens = null, knownMap = null, furigana = fals
         inner = ruby(furiganaSegs(t.s, t.entry.kana[0]), t.s);
       }
     }
-    return `<button class="wchip" data-w="${esc(t.base || t.s)}" data-s="${esc(t.s)}" data-known="${state}">${inner}</button>`;
+    const mark = register.markOf(t.s, t.base);
+    return `<button class="wchip" data-w="${esc(t.base || t.s)}" data-s="${esc(t.s)}" data-known="${state}"${
+      mark ? ` data-reg="${mark.tag}"` : ''}>${inner}${mark ? register.badge(mark.tag) : ''}</button>`;
   };
 
   // Japanese must not start a line with 。、」 and friends. Each token is its own
@@ -244,6 +273,7 @@ export async function openWordSheet(surface, base = null) {
   }
 
   const examples = (vocab?.x || []).slice(0, 2);
+  const mark = register.markOf(surface, info?.base || base);
 
   body.innerHTML = `
     <div class="spread" style="align-items:flex-start">
@@ -258,6 +288,15 @@ export async function openWordSheet(surface, base = null) {
     </div>
 
     <div style="margin:10px 0 2px">${tags.join('')}</div>
+
+    ${mark ? `<div class="card reg-card reg-${mark.tag}" style="margin-top:8px">
+      <div class="row" style="gap:8px">${register.badge(mark.tag)}
+        <b>${esc(register.LABELS[mark.tag]?.name || mark.tag)}</b></div>
+      <p class="small muted" style="margin-top:6px">${esc(register.LABELS[mark.tag]?.hint || '')}</p>
+      ${mark.en ? `<p class="small" style="margin-top:4px">${esc(mark.en)}</p>` : ''}
+      ${mark.note ? `<p class="small" style="margin-top:6px;color:var(--indigo)">${esc(mark.note)}</p>` : ''}
+      ${mark.src ? `<a class="btn btn-sm" style="margin-top:8px" href="#/track/${esc(mark.src.split('/')[0])}/${esc(mark.src.split('/')[1])}">Where this comes from</a>` : ''}
+    </div>` : ''}
 
     <div style="margin-top:8px">
       ${senses.map((s, i) => `

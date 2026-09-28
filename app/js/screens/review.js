@@ -3,7 +3,7 @@ import * as data from '../data.js';
 import * as store from '../store.js';
 import { esc, ruby, toast, buzz, speak, canSpeak, openWordSheet } from '../ui.js';
 import { review as schedule, preview, RATING, STATE, newCard } from '../srs.js';
-import { session, bumpToday, touchStreak, enrollLevel, enrollKanji, newAllowance, inventory, today as todayCounts } from '../progress.js';
+import { session, bumpToday, touchStreak, enrollLevel, enrollKanji, remainingNew, inventory, today as todayCounts } from '../progress.js';
 
 const GRADES = [
   { g: RATING.AGAIN, label: 'Again' },
@@ -18,15 +18,13 @@ function wordFace(w, { furigana = true } = {}) {
 
 // ---------------------------------------------------------------- Learn
 /** First exposure: see the word, hear it, read it in a sentence, then it enters the SRS. */
-export async function learn({ params, view, setChrome, go, signal }) {
+export async function learn({ params, query, view, setChrome, go, signal }) {
   const lv = params[0];
   const kind = params[1] === 'kanji' ? 'kanji' : 'vocab';
   const isKanji = kind === 'kanji';
   setChrome({ title: `Learn ${isKanji ? 'kanji' : ''} · ${lv}`.replace('  ', ' '), back: true });
 
-  const [list, inv, counts] = await Promise.all([
-    isKanji ? data.kanji(lv) : data.vocab(lv), inventory(), todayCounts(),
-  ]);
+  const list = isKanji ? await data.kanji(lv) : await data.vocab(lv);
   const base = await store.setting('newPerDay', 10);
   const deck = isKanji ? `kanji:${lv}` : `level:${lv}`;
 
@@ -40,12 +38,25 @@ export async function learn({ params, view, setChrome, go, signal }) {
     else await enrollLevel(lv, list, alreadyNew + base * 3);
   }
 
-  const allowance = newAllowance(inv.due, base) - counts.new;
+  const noun = isKanji ? 'kanji' : 'words';
+  const r = await remainingNew(kind);
+  const more = query?.get('more') === '1';
+  let allowance = more ? base : r.left;
+
   if (allowance <= 0) {
-    view.innerHTML = `<div class="empty"><div class="empty-mark">休</div>
-      <p><b>New words are paused.</b></p>
-      <p class="small" style="margin-top:6px">You have ${inv.due} reviews waiting. Clearing them is worth more than new words right now.</p>
-      <a class="btn btn-primary" style="margin-top:16px" href="#/review">Do reviews</a></div>`;
+    // Say the true reason. This used to blame reviews even when none were due.
+    const backlog = r.reason === 'backlog';
+    view.innerHTML = `<div class="empty"><div class="empty-mark">${backlog ? '休' : '✓'}</div>
+      <p><b>${backlog
+        ? `New ${noun} are paused.`
+        : `That is today's ${noun} done — ${r.doneToday} of ${r.cap}.`}</b></p>
+      <p class="small" style="margin-top:6px">${backlog
+        ? `You have ${r.due} review${r.due === 1 ? '' : 's'} waiting. Clearing those is worth more than new ${noun} right now.`
+        : `The daily cap keeps tomorrow's review load sane. You can carry on if you want to — it just means more to review later.`}</p>
+      ${backlog
+        ? `<a class="btn btn-primary" style="margin-top:16px" href="#/review">Do reviews</a>`
+        : `<a class="btn btn-primary" style="margin-top:16px" href="#/learn/${lv}${isKanji ? '/kanji' : ''}?more=1">Learn ${base} more anyway</a>`}
+      <a class="btn btn-block btn-ghost" style="margin-top:8px" href="#/today">Back to Today</a></div>`;
     return;
   }
 
@@ -148,7 +159,7 @@ export async function learn({ params, view, setChrome, go, signal }) {
       const { card: next, log } = schedule(card, rating);
       await store.put('cards', next);
       await store.put('reviews', log);
-      await bumpToday({ new: 1 });
+      await bumpToday(isKanji ? { newKanji: 1 } : { new: 1 });
       buzz();
       i++;
       draw();

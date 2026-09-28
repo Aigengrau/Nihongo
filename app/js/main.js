@@ -35,6 +35,7 @@ const routes = [
   [/^\/stats$/, () => import('./screens/me.js').then((m) => m.stats)],
   [/^\/settings$/, () => import('./screens/me.js').then((m) => m.settings)],
   [/^\/credits$/, () => import('./screens/me.js').then((m) => m.credits)],
+  [/^\/marked$/, () => import('./screens/me.js').then((m) => m.marked)],
   [/^\/tracks$/, () => import('./screens/tracks.js').then((m) => m.hub)],
   [/^\/track\/([\w-]+)$/, () => import('./screens/tracks.js').then((m) => m.track)],
   [/^\/track\/([\w-]+)\/([\w-]+)$/, () => import('./screens/tracks.js').then((m) => m.module)],
@@ -43,7 +44,7 @@ const routes = [
   [/^\/business\/([\w-]+)$/, () => import('./screens/tracks.js').then((m) => (a) => m.module({ ...a, params: ['business', a.params[0]] }))],
 ];
 
-const TABS = { today: /^\/today/, levels: /^\/(levels|level|words|kanji|grammar|kana|watch|read|learn|conjugate|business|tracks|track|produce|listen)/, saved: /^\/saved/, stats: /^\/(stats|settings|credits)/ };
+const TABS = { today: /^\/today/, levels: /^\/(levels|level|words|kanji|grammar|kana|watch|read|learn|conjugate|business|tracks|track|produce|listen)/, saved: /^\/saved/, stats: /^\/(stats|settings|credits|marked)/ };
 
 export const go = (path, replace = false) => {
   if (replace) location.replace(`#${path}`);
@@ -68,7 +69,9 @@ export const isStale = (signal) => !!signal?.aborted;
 
 async function render() {
   closeSheet();
-  const path = (location.hash || '#/today').slice(1);
+  const raw = (location.hash || '#/today').slice(1);
+  // A route may carry a query string (#/learn/N5?more=1). Match on the path.
+  const [path, query = ''] = raw.split('?');
   const token = ++currentToken;
   currentAbort?.abort();
   const ac = new AbortController();
@@ -87,10 +90,14 @@ async function render() {
       return;
     }
     if (token !== currentToken) return; // a newer navigation won
+    // Blank the outgoing screen BEFORE scrolling. Scrolling first left the
+    // previous screen on display while it jumped to the top, which read as the
+    // old menu flashing up for a moment on every navigation.
+    view.innerHTML = '';
     view.scrollTop = 0;
     window.scrollTo(0, 0);
     try {
-      await screen({ params: m.slice(1), view, setChrome, go, signal: ac.signal });
+      await screen({ params: m.slice(1), query: new URLSearchParams(query), view, setChrome, go, signal: ac.signal });
     } catch (e) {
       console.error(e);
       // The screen may have been abandoned mid-await; do not paint over its successor.
@@ -122,6 +129,21 @@ async function render() {
 
 backBtn.addEventListener('click', () => history.back());
 window.addEventListener('hashchange', render);
+
+// Tapping the tab you are already on must refresh it. Setting location.hash to
+// its current value fires no hashchange, so Today would keep showing the counts
+// it had when you first opened it — stale the moment you learn anything.
+tabbar.addEventListener('click', (e) => {
+  const a = e.target.closest('a[href^="#"]');
+  if (!a) return;
+  if (a.getAttribute('href') === location.hash) { e.preventDefault(); render(); }
+});
+
+// Coming back from the background is the other moment counts go stale: a new
+// day may have started, or reviews may now be due.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') refreshBadge();
+});
 
 // ---------- due badge ----------
 export async function refreshBadge() {
@@ -201,6 +223,10 @@ async function boot() {
 
   // The dictionary powers tap-a-word everywhere, so load it before first paint
   // of any content screen, but never block the shell on it.
+  // Register marks are consulted synchronously while rendering text, so the
+  // index has to be in memory before any content screen paints.
+  import('./register.js').then((r) => r.ready()).catch(() => {});
+
   dict.load().catch((e) => {
     console.warn('dictionary failed to load', e);
     toast('Dictionary unavailable — word lookup is off', 4000);

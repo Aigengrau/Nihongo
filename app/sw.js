@@ -14,7 +14,7 @@
  *  - Range requests are answered with a real 206, or Safari's <audio> silently
  *    refuses to play.
  */
-const BUILD = 'v1.0.6';
+const BUILD = 'v1.1.0';
 const SHELL = `shell-${BUILD}`;
 // Versioned with the build: a fixed name meant shipped data corrections
 // could never reach anyone who had already installed.
@@ -43,6 +43,7 @@ const SHELL_FILES = [
   './js/screens/read.js',
   './js/screens/me.js',
   './js/screens/tracks.js',
+  './js/register.js',
   './js/screens/produce.js',
   './js/screens/listen.js',
   './js/screens/drill.js',
@@ -57,7 +58,8 @@ const CORE_DATA = [
   './data/index.json',
   './data/kana.json',
   './data/dict/common.json',          // the tap-any-word dictionary, 2.8 MB
-  './data/business.json',
+  './data/register.json',
+  './data/tracks/index.json',
   './data/i1.json',
   './data/sentence-words.json',
   './data/stories/index.json',

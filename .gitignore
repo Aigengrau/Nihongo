@@ -9,12 +9,18 @@ node_modules/
 build/node_modules/
 build/package-lock.json
 
-# Test output: screenshots and scratch harnesses from review runs
+# Test output: screenshots, and the scratch harnesses review agents write
 build/test/shots/
-build/test/audit/
-build/test/adv/
-build/test/refute/
 build/test/*.png
+build/test/adv*
+build/test/refute*
+build/test/rf[0-9]*
+build/test/rfx*
+build/test/rfz*
+build/test/jp-*
+build/test/audit*
+build/test/zz*
+build/test/repro-*
 
 # Internal QA artefacts from the review pass
 build/review/

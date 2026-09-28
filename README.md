@@ -103,6 +103,13 @@ pass:
 Every comparison table (keigo, Kansai, counters, register) doubles as a
 multiple-choice drill generated from the table itself.
 
+**Casual and dialect marking** — forms that are casual (食べてる, わかんない) or
+dialect (せや, ばり速か, めんそーれ) carry a small badge wherever they appear, so you
+can see at a glance what not to say to a client. Tap one for the explanation and
+a link to the module it comes from. 84 forms across casual plus seven regions;
+choose which to mark in Settings, or browse them all under Settings → *See every
+marked form*.
+
 **Everywhere** — tap any Japanese word, anywhere in the app, and a sheet tells
 you what it means, what its dictionary form is, *how it was conjugated to get
 there*, its politeness register, and lets you save it. Saved words join your

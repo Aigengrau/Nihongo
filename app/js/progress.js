@@ -10,7 +10,10 @@ export const dayKey = (t = Date.now()) => {
 
 export async function today() {
   const k = dayKey();
-  return (await store.get('progress', `day:${k}`)) || { key: `day:${k}`, day: k, new: 0, reviews: 0, correct: 0, minutes: 0 };
+  const row = (await store.get('progress', `day:${k}`))
+    || { key: `day:${k}`, day: k, new: 0, reviews: 0, correct: 0, minutes: 0 };
+  row.newKanji = row.newKanji || 0;
+  return row;
 }
 
 export async function bumpToday(patch) {
@@ -61,6 +64,23 @@ export async function touchStreak() {
  */
 export function newAllowance(dueCount, base = 10) {
   return Math.max(0, Math.min(base, base - Math.floor(dueCount / 25)));
+}
+
+/**
+ * How many new items of one kind are still on offer today, and why not more.
+ * Words and kanji have SEPARATE daily counts: learning ten words used to zero
+ * the kanji allowance too, which read as "reviews are blocking me" when no
+ * reviews were due at all.
+ */
+export async function remainingNew(kind = 'vocab') {
+  const [inv, t] = await Promise.all([inventory(), today()]);
+  const base = await store.setting('newPerDay', 10);
+  const cap = newAllowance(inv.due, base);
+  const doneToday = kind === 'kanji' ? t.newKanji : t.new;
+  const left = Math.max(0, cap - doneToday);
+  let reason = null;
+  if (left === 0) reason = cap === 0 ? 'backlog' : 'daily-goal';
+  return { left, cap, base, doneToday, due: inv.due, reason };
 }
 
 export async function inventory() {

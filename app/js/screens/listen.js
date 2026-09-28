@@ -11,7 +11,8 @@
 import * as data from '../data.js';
 import * as store from '../store.js';
 import * as dict from '../dict.js';
-import { esc, tappable, bindWordTaps, toast, speak, canSpeak, loadFurigana, knownWords } from '../ui.js';
+import { esc, tappable, bindWordTaps, toast, speak, canSpeak, loadFurigana, knownWords,
+  SPEECH_RATES, getSpeechRate, setSpeechRate, rateLabel } from '../ui.js';
 
 const CHEV = `<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
@@ -82,7 +83,7 @@ export async function player({ params, view, setChrome, signal }) {
 
   let idx = 0;
   let playing = false;
-  let rate = Number(await store.setting('listenRate', 0.85)) || 0.85;
+  // Shares the app-wide speed, so changing it here changes it everywhere.
   let showEn = true;
   let wakeLock = null;
 
@@ -111,7 +112,7 @@ export async function player({ params, view, setChrome, signal }) {
       u.lang = 'ja-JP';
       const v = speechSynthesis.getVoices().find((x) => x.lang?.toLowerCase().startsWith('ja'));
       if (v) u.voice = v;
-      u.rate = rate;
+      u.rate = getSpeechRate();
       u.onend = () => {
         if (!playing || signal?.aborted) return;
         if (n + 1 < doc.lines.length) { idx = n + 1; paint(); say(idx); }
@@ -154,7 +155,7 @@ export async function player({ params, view, setChrome, signal }) {
                     : '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'}</button>
         <button class="vbar-btn" id="next" aria-label="Next line" ${idx >= doc.lines.length - 1 ? 'disabled' : ''}>
           <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg></button>
-        <button class="btn btn-sm" id="rate" aria-label="Speed">${rate.toFixed(2).replace(/0$/, '')}×</button>
+        <button class="btn btn-sm" id="rate" aria-label="Speaking speed">${rateLabel()}</button>
       </div>
 
       ${canSpeak() ? '' : `<p class="small faint center" style="margin-top:10px">
@@ -178,9 +179,8 @@ export async function player({ params, view, setChrome, signal }) {
     view.querySelector('#repeat').addEventListener('click', () => { playing = true; paint(); say(idx); }, { signal });
     view.querySelector('#toggleEn').addEventListener('click', () => { showEn = !showEn; paint(); }, { signal });
     view.querySelector('#rate').addEventListener('click', async () => {
-      const steps = [0.6, 0.75, 0.85, 1, 1.15];
-      rate = steps[(steps.indexOf(rate) + 1) % steps.length] ?? 0.85;
-      await store.setSetting('listenRate', rate);
+      const i = SPEECH_RATES.indexOf(getSpeechRate());
+      await setSpeechRate(SPEECH_RATES[(i + 1) % SPEECH_RATES.length]);
       paint();
       if (playing) say(idx);
     }, { signal });

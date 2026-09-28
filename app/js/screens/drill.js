@@ -6,7 +6,7 @@
 // wrong here just offers to add it to your real deck.
 import * as data from '../data.js';
 import * as store from '../store.js';
-import { esc, ruby, toast, buzz, speak, canSpeak, openWordSheet } from '../ui.js';
+import { esc, ruby, toast, buzz, speak, canSpeak, openWordSheet, cycleSpeechRate, rateLabel } from '../ui.js';
 import { newCard } from '../srs.js';
 
 export const MODES = [
@@ -114,7 +114,7 @@ function flashcards({ bar, cards, view, signal, openDetail, kind, lv }) {
       </button>
       <div class="row" style="margin-top:12px;gap:8px">
         <button class="btn" id="prev" ${i === 0 ? 'disabled' : ''}>←</button>
-        ${canSpeak() ? '<button class="btn" id="say">🔊</button>' : ''}
+        ${canSpeak() ? '<button class="btn" id="say">🔊</button><button class="btn" id="rate">' + rateLabel() + '</button>' : ''}
         <button class="btn btn-block btn-primary" id="next">${i >= deck.length - 1 ? 'Start over' : 'Next'}</button>
       </div>
       <button class="btn btn-block btn-ghost" style="margin-top:8px" id="detail">Full details</button>
@@ -126,6 +126,7 @@ function flashcards({ bar, cards, view, signal, openDetail, kind, lv }) {
       else openDetail(c);
     }, { signal });
     view.querySelector('#say')?.addEventListener('click', () => speak(c.speak), { signal });
+    view.querySelector('#rate')?.addEventListener('click', (e) => { e.currentTarget.textContent = rateLabel(cycleSpeechRate()); speak(c.speak); }, { signal });
     view.querySelector('#detail').addEventListener('click', () => openDetail(c), { signal });
     view.querySelector('#prev').addEventListener('click', () => { i = Math.max(0, i - 1); shown = false; paint(); }, { signal });
     view.querySelector('#next').addEventListener('click', () => {

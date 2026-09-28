@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const PORT = 8099;
-const ALL = ['e2e', 'scroll', 'layout', 'blockers', 'listen', 'produce', 'drill', 'tracks', 'offline', 'offline-level'];
+const ALL = ['e2e', 'scroll', 'layout', 'blockers', 'listen', 'produce', 'drill', 'tracks', 'fixes', 'offline', 'offline-level'];
 const want = process.argv.slice(2).length ? process.argv.slice(2) : ALL;
 
 const server = spawn(process.execPath, [path.join(ROOT, 'serve.mjs'), String(PORT)], { cwd: ROOT, stdio: 'ignore' });
@@ -26,7 +26,7 @@ let failed = 0;
 for (const name of want) {
   const file = path.join(ROOT, 'build', 'test', `${name}.mjs`);
   const out = await new Promise((res) => {
-    const p = spawn(process.execPath, [file], { cwd: ROOT });
+    const p = spawn(process.execPath, [file], { cwd: ROOT, env: { ...process.env, NIHONGO_BASE: `http://localhost:${PORT}` } });
     let buf = '';
     p.stdout.on('data', (d) => { buf += d; });
     p.stderr.on('data', (d) => { buf += d; });

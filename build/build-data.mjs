@@ -214,6 +214,113 @@ for (const kind of ['videos', 'stories']) {
     const order = ['travel', 'casual', 'expressive', 'dialects', 'business', 'academic'];
     idx.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
     write('tracks/index.json', idx);
+
+    // Register index: which forms are casual, which are dialect. Built from the
+    // track content so it stays in step with it, and consulted at runtime to
+    // badge those forms wherever they appear in text.
+    //
+    // Tagging is per MODULE, not per column name: `n` means the Kansai 〜ん
+    // negative in one table and "number" in the counter tables, so a global
+    // key map tagged 1, 2, 3 as Kansai.
+    const reg = {};
+    const SENTENCE = /[。、？！?!]/;
+    // Forms that appear as a BASELINE anywhere (the standard / polite / full
+    // column) are not marked forms, whatever else they turn up next to. Without
+    // this, です picked up a Kansai tag from one table and every polite sentence
+    // in the app would have been badged as dialect.
+    const baseline = new Set();
+
+    const tag = (form, kind, meta) => {
+      if (!form || form === '—') return;
+      // A cell may list alternatives: せや・そや, 言うた・こうた.
+      for (const part of String(form).split(/[・、／/]/)) {
+        const k = part.replace(/^[〜~]/, '').trim();
+        // Words and short forms only. Whole sentences cannot be badged inline.
+        if (!k || k.length > 7 || SENTENCE.test(k)) continue;
+        if (!/[぀-ヿ一-鿿]/.test(k)) continue;   // must be Japanese
+        if (baseline.has(k)) continue;
+        const row = reg[k] || (reg[k] = { t: [], en: '', note: '', src: '' });
+        if (!row.t.includes(kind)) row.t.push(kind);
+        if (!row.en && meta.en) row.en = meta.en;
+        if (!row.note && meta.note) row.note = meta.note;
+        if (!row.src) row.src = meta.src;
+      }
+    };
+    const noteBaseline = (form) => {
+      if (!form) return;
+      for (const part of String(form).split(/[・、／/]/)) {
+        const k = part.replace(/^[〜~]/, '').trim();
+        if (k) baseline.add(k);
+      }
+    };
+
+    // Column keys that name a specific region, wherever they appear.
+    const REGION = {
+      kansai: 'kansai', hen: 'kansai', tohoku: 'tohoku', hakata: 'hakata',
+      kyushu: 'hakata', nagoya: 'nagoya', hiroshima: 'hiroshima', okinawa: 'okinawa',
+    };
+    // Which tracks contribute, and what their non-baseline columns mean.
+    const TRACK_TAG = { dialects: 'kansai', casual: 'casual' };
+    // Columns that describe a row rather than holding a Japanese form.
+    const META_COLS = new Set(['region', 'where', 'meaning', 'area']);
+    // Japanese region name -> tag slug.
+    const REGION_NAMES = [
+      [/関西|大阪|京都|近畿/, 'kansai'], [/東北/, 'tohoku'], [/北海道/, 'hokkaido'],
+      [/博多|福岡|九州/, 'hakata'], [/名古屋|岐阜|東海/, 'nagoya'],
+      [/広島|岡山|山口|中国/, 'hiroshima'], [/沖縄/, 'okinawa'],
+    ];
+    const regionTag = (v) => {
+      if (!v) return null;
+      for (const [re, slug] of REGION_NAMES) if (re.test(String(v))) return slug;
+      return null;
+    };
+
+    const trackFiles = fs.readdirSync(dir).filter((x) => x.endsWith('.json'));
+    for (const f of trackFiles) {
+      const t = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+      for (const m of t.modules || []) {
+        if (m.kind !== 'transform') continue;
+        const first = (m.columns || [])[0];
+        if (first) for (const it of m.items || []) noteBaseline(it[first.key]);
+      }
+    }
+
+    for (const f of trackFiles) {
+      const t = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+      const fallback = TRACK_TAG[t.id];
+      for (const m of t.modules || []) {
+        const src = `${t.id}/${m.id}`;
+        if (m.kind === 'transform') {
+          const cols = m.columns || [];
+          // A "region"/"where" column names where each row's form comes from.
+          // Its values are place names (東北, 千葉) and must never be tagged as
+          // dialect forms themselves — they say which tag the row's forms get.
+          const meta = cols.find((c) => META_COLS.has(c.key));
+          const forms = cols.filter((c) => !META_COLS.has(c.key));
+          // With a region column every row is already "form + where it's from",
+          // so there is no baseline to skip. Otherwise the first column is the
+          // standard form being converted FROM.
+          const marked = meta ? forms : forms.slice(1);
+          for (const c of marked) {
+            for (const it of m.items || []) {
+              const kind = (meta && regionTag(it[meta.key]))
+                || REGION[c.key]
+                || (c.key === 'casual' || c.key === 'short' ? 'casual' : fallback);
+              if (!kind) continue;
+              tag(it[c.key], kind, { en: it.en, note: it.note || m.note, src });
+            }
+          }
+        }
+        // Phrase lists are deliberately NOT tagged: they hold example sentences
+        // and ordinary nouns (先輩, 上司), and tagging those badged perfectly
+        // standard words as casual. Only the comparison tables, where one
+        // column is explicitly the marked form, are trustworthy here.
+      }
+    }
+    write('register.json', reg);
+    const counts = {};
+    for (const r of Object.values(reg)) for (const k of r.t) counts[k] = (counts[k] || 0) + 1;
+    console.log(`  register index: ${Object.keys(reg).length} forms — ${Object.entries(counts).map(([k, v]) => `${k} ${v}`).join(', ')}`);
     console.log(`  ${idx.length} beyond-JLPT tracks, ${idx.reduce((a, t) => a + t.items, 0)} items`);
   }
 }

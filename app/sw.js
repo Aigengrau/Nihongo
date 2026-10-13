@@ -14,7 +14,7 @@
  *  - Range requests are answered with a real 206, or Safari's <audio> silently
  *    refuses to play.
  */
-const BUILD = 'v1.2.0';
+const BUILD = 'v1.2.1';
 const SHELL = `shell-${BUILD}`;
 // Versioned with the build: a fixed name meant shipped data corrections
 // could never reach anyone who had already installed.
@@ -50,6 +50,7 @@ const SHELL_FILES = [
   './js/screens/grammar.js',
   './js/grammar.js',
   './js/swipe.js',
+  './js/update.js',
   './icons/icon.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -228,15 +229,34 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // Shell: cache first, refresh in the background.
+  // Shell: cache only, network as a fallback for anything not precached.
+  //
+  // This used to refresh each file in the background after serving it, which
+  // quietly mixed builds: once a new version was deployed, a page that had
+  // already loaded the old main.js would import a screen and get the NEW one
+  // from the refreshed cache. Two builds in one page is not a stale page, it
+  // is a broken one — the new Settings screen called an export yesterday's
+  // main.js did not have, and the screen died.
+  //
+  // A build's shell is immutable. The new build has its own cache, precached
+  // whole at install, and switches over in one step when the worker does.
   e.respondWith((async () => {
     const cache = await caches.open(SHELL);
+    // A hard reload is the one gesture that means "ignore what you have", and
+    // it is how a developer sees an edit without bumping BUILD. Offline it
+    // falls through to the cache, so this costs nothing on a train.
+    if (req.cache === 'reload' || req.cache === 'no-store') {
+      try { return await fetch(req); } catch { /* use the cache */ }
+    }
     const hit = await cache.match(req, { ignoreSearch: true });
-    const net = fetch(req).then((res) => {
-      if (res.ok) cache.put(req, res.clone());
+    if (hit) return hit;
+    try {
+      const res = await fetch(req);
+      if (res.ok) await cache.put(req, res.clone());
       return res;
-    }).catch(() => null);
-    return hit || (await net) || new Response('', { status: 504 });
+    } catch {
+      return new Response('', { status: 504 });
+    }
   })());
 });
 

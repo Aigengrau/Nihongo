@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const PORT = 8099;
 const ALL = ['e2e', 'scroll', 'layout', 'blockers', 'listen', 'produce', 'drill', 'tracks', 'grammar-ui',
-  'swipe', 'fixes', 'offline', 'offline-level', 'update'];
+  'swipe', 'fixes', 'offline', 'offline-level', 'update', 'upgrade'];
 const want = process.argv.slice(2).length ? process.argv.slice(2) : ALL;
 
 const server = spawn(process.execPath, [path.join(ROOT, 'serve.mjs'), String(PORT)], { cwd: ROOT, stdio: 'ignore' });

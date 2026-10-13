@@ -170,9 +170,17 @@ export async function settings({ view, setChrome }) {
   await register.ready();
   const on = await register.enabledTags();
   const persist = await store.requestPersistence();
-  const { isInstalled, isIOS, installable, promptInstall, checkForUpdate, appVersion } = await import('../main.js');
   const lastBackup = await store.get('progress', 'lastBackup');
-  const version = await appVersion();
+
+  // Mid-upgrade, this screen can be newer than the main.js the page booted
+  // from, so nothing here may assume a particular version of another module:
+  // this screen going down is how someone loses the button that would have
+  // fixed it. Updating has its own module for the same reason.
+  const shell = await import('../main.js').catch(() => ({}));
+  const isInstalled = shell.isInstalled ?? (() => true);
+  const isIOS = shell.isIOS ?? (() => false);
+  const updater = await import('../update.js').catch(() => null);
+  const version = await updater?.appVersion().catch(() => null) ?? null;
 
   view.innerHTML = `
     ${!isInstalled() ? `<div class="card" style="border-color:var(--accent)">
@@ -261,7 +269,9 @@ export async function settings({ view, setChrome }) {
         New versions install themselves in the background; the app offers to
         restart into one as soon as it is ready. You never reinstall it.
       </p>
-      <button class="btn btn-block" id="checkUpdate" style="margin-top:10px">Check for updates</button>
+      ${updater ? `<button class="btn btn-block" id="checkUpdate" style="margin-top:10px">Check for updates</button>
+        <button class="btn btn-block btn-ghost" id="applyUpdate" style="margin-top:8px">Restart into the newest version</button>`
+      : `<p class="small faint" style="margin-top:8px">Connect once to let it check.</p>`}
     </div>
 
     <h2 class="section-title">About</h2>
@@ -273,8 +283,8 @@ export async function settings({ view, setChrome }) {
   `;
 
   view.querySelector('#install')?.addEventListener('click', async () => {
-    if (!installable()) return toast('Use your browser menu → Install app');
-    await promptInstall();
+    if (!shell.installable?.()) return toast('Use your browser menu → Install app');
+    await shell.promptInstall();
   });
   view.querySelector('#rate').addEventListener('change', async (e) => {
     await setSpeechRate(+e.target.value);
@@ -295,15 +305,26 @@ export async function settings({ view, setChrome }) {
     if (v === 'system') delete document.documentElement.dataset.theme;
     else document.documentElement.dataset.theme = v;
   });
-  view.querySelector('#checkUpdate').addEventListener('click', async (e) => {
+  view.querySelector('#checkUpdate')?.addEventListener('click', async (e) => {
     const btn = e.currentTarget;
     btn.disabled = true;
     btn.textContent = 'Checking…';
-    const found = await checkForUpdate({ force: true });
+    const found = await updater.checkForUpdate({ force: true }).catch(() => false);
     btn.disabled = false;
     btn.textContent = 'Check for updates';
     // When one is found the bar appears on its own, with the button that applies it.
     toast(found ? 'A new version is ready — see the bar below' : 'You are on the latest version', 3000);
+  });
+  // The way out of a half-applied update: apply whatever is already downloaded,
+  // without waiting for the bar or for the app to be closed and reopened.
+  view.querySelector('#applyUpdate')?.addEventListener('click', async () => {
+    const had = await updater.applyUpdate().catch(() => false);
+    if (had) toast('Restarting into the new version…');
+    else {
+      const found = await updater.checkForUpdate({ force: true }).catch(() => false);
+      if (found) await updater.applyUpdate().catch(() => false);
+      toast(found ? 'Restarting into the new version…' : 'Already on the newest version', 3000);
+    }
   });
   view.querySelector('#export').addEventListener('click', downloadBackup);
   view.querySelector('#import').addEventListener('click', () => view.querySelector('#file').click());

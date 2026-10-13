@@ -160,6 +160,13 @@ An update never costs you anything you had: your words and history are in
 IndexedDB, untouched by it, and the levels you downloaded for offline are
 carried across to the new build's cache rather than re-fetched.
 
+A build's cached shell is immutable: an installed version keeps serving its own
+files until its worker is replaced in one step. The worker used to refresh each
+file in the background as it served it, which meant that after a deploy a page
+could be running yesterday's `main.js` and today's screens at the same time —
+two releases in one page, which is not a stale page but a broken one. While
+developing, a hard reload still goes straight to the network.
+
 ---
 
 ## Your data
@@ -276,6 +283,7 @@ node build/test/produce.mjs       # production practice
 node build/test/grammar-ui.mjs    # explain -> practise -> scheduled -> reviewed
 node build/test/swipe.mjs         # buttons reachable without scrolling, swipe + undo
 node build/test/update.mjs        # install v1, deploy v2, update in place, keep your data
+node build/test/upgrade.mjs      # upgrade from the real previous commit, mixed-build safety
 ```
 
 The browser tests need a server on port 8099 (`node serve.mjs 8099`) and

@@ -170,8 +170,9 @@ export async function settings({ view, setChrome }) {
   await register.ready();
   const on = await register.enabledTags();
   const persist = await store.requestPersistence();
-  const { isInstalled, isIOS, installable, promptInstall } = await import('../main.js');
+  const { isInstalled, isIOS, installable, promptInstall, checkForUpdate, appVersion } = await import('../main.js');
   const lastBackup = await store.get('progress', 'lastBackup');
+  const version = await appVersion();
 
   view.innerHTML = `
     ${!isInstalled() ? `<div class="card" style="border-color:var(--accent)">
@@ -253,6 +254,16 @@ export async function settings({ view, setChrome }) {
       <input type="file" id="file" accept="application/json" hidden>
     </div>
 
+    <h2 class="section-title">Version</h2>
+    <div class="card">
+      <p class="small muted">
+        ${version ? `Running <b>${esc(version)}</b>.` : 'Running from the network — no offline copy yet.'}
+        New versions install themselves in the background; the app offers to
+        restart into one as soon as it is ready. You never reinstall it.
+      </p>
+      <button class="btn btn-block" id="checkUpdate" style="margin-top:10px">Check for updates</button>
+    </div>
+
     <h2 class="section-title">About</h2>
     <a class="tile" href="#/credits"><span class="tile-main"><span class="tile-title">Credits and licences</span>
       <span class="tile-sub">The open data this app is built on</span></span></a>
@@ -283,6 +294,16 @@ export async function settings({ view, setChrome }) {
     store.setSetting('theme', v);
     if (v === 'system') delete document.documentElement.dataset.theme;
     else document.documentElement.dataset.theme = v;
+  });
+  view.querySelector('#checkUpdate').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    btn.textContent = 'Checking…';
+    const found = await checkForUpdate({ force: true });
+    btn.disabled = false;
+    btn.textContent = 'Check for updates';
+    // When one is found the bar appears on its own, with the button that applies it.
+    toast(found ? 'A new version is ready — see the bar below' : 'You are on the latest version', 3000);
   });
   view.querySelector('#export').addEventListener('click', downloadBackup);
   view.querySelector('#import').addEventListener('click', () => view.querySelector('#file').click());

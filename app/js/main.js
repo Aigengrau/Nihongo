@@ -18,8 +18,10 @@ const routes = [
   [/^\/level\/(N[1-5])$/, () => import('./screens/home.js').then((m) => m.level)],
   [/^\/words\/(N[1-5])(?:\/(list|cards|quiz|match|listen))?$/, () => import('./screens/browse.js').then((m) => m.words)],
   [/^\/kanji\/(N[1-5])(?:\/(list|cards|quiz|match|listen))?$/, () => import('./screens/browse.js').then((m) => m.kanjiList)],
-  [/^\/grammar\/(N[1-5])$/, () => import('./screens/browse.js').then((m) => m.grammarList)],
-  [/^\/grammar\/(N[1-5])\/(\d+)$/, () => import('./screens/browse.js').then((m) => m.grammarPoint)],
+  [/^\/grammar\/(N[1-5])$/, () => import('./screens/grammar.js').then((m) => m.hub)],
+  [/^\/grammar\/(N[1-5])\/all$/, () => import('./screens/grammar.js').then((m) => m.all)],
+  [/^\/grammar\/(N[1-5])\/(\d+)$/, () => import('./screens/grammar.js').then((m) => m.point)],
+  [/^\/learn\/(N[1-5])\/grammar$/, () => import('./screens/grammar.js').then((m) => m.learn)],
   [/^\/kana$/, () => import('./screens/browse.js').then((m) => m.kana)],
   [/^\/conjugate\/(N[1-5])$/, () => import('./screens/browse.js').then((m) => m.conjugate)],
   [/^\/review(?:\/(.+))?$/, () => import('./screens/review.js').then((m) => m.review)],
@@ -182,31 +184,102 @@ export const isIOS = () =>
   /iphone|ipad|ipod/i.test(navigator.userAgent) ||
   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-// ---------- service worker ----------
+// ---------- service worker and updates ----------
+//
+// The app is installed on a phone and is never reinstalled, so updating has to
+// be something it does to itself. Three things make that work:
+//
+//   - it looks for a new version on launch, whenever it comes back to the
+//     foreground, and once an hour while open. An installed PWA can sit in the
+//     background for weeks; waiting for the browser to notice is not enough.
+//   - a worker left waiting from a previous session is picked up on the next
+//     launch, so a declined update is not a lost one.
+//   - the bar only appears when a new version is genuinely ready, and the swap
+//     only happens on a tap. Swapping under a live page would throw away the
+//     review in progress.
+const UPDATE_EVERY = 60 * 60 * 1000;
+const CHECK_GAP = 5 * 60 * 1000;      // never hammer the network on tab switches
+let swReg = null;
+let lastCheck = 0;
+
+function offerUpdate(worker) {
+  const bar = document.getElementById('updateBar');
+  if (!worker || !bar?.hidden) return;
+  bar.hidden = false;
+  document.getElementById('updateBtn').onclick = () => {
+    bar.hidden = true;
+    toast('Updating…');
+    worker.postMessage({ type: 'SKIP_WAITING' });
+  };
+  document.getElementById('updateLater').onclick = () => { bar.hidden = true; };
+}
+
+/** Resolve once a worker has finished installing (or given up). */
+const DONE = ['installed', 'activated', 'redundant'];
+const settled = (w, ms = 20000) => new Promise((resolve) => {
+  if (DONE.includes(w.state)) return resolve();
+  const off = () => { w.removeEventListener('statechange', check); resolve(); };
+  const check = () => { if (DONE.includes(w.state)) off(); };
+  w.addEventListener('statechange', check);
+  setTimeout(off, ms);
+});
+
+/** @returns {Promise<boolean>} true when a new version is now waiting. */
+export async function checkForUpdate({ force = false } = {}) {
+  if (!swReg) return false;
+  if (!force && Date.now() - lastCheck < CHECK_GAP) return !!swReg.waiting;
+  lastCheck = Date.now();
+  try { await swReg.update(); } catch { return !!swReg.waiting; }
+  // update() resolves as soon as the new worker *starts* installing, so without
+  // this the answer would be "you are up to date" while a new version was
+  // downloading in the background.
+  if (swReg.installing) await settled(swReg.installing);
+  if (swReg.waiting && navigator.serviceWorker.controller) offerUpdate(swReg.waiting);
+  return !!swReg.waiting;
+}
+
+/** The build the controlling worker was cut from, for Settings. */
+export function appVersion() {
+  const sw = navigator.serviceWorker?.controller;
+  if (!sw) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const ch = new MessageChannel();
+    const done = setTimeout(() => resolve(null), 800);
+    ch.port1.onmessage = (e) => { clearTimeout(done); resolve(e.data?.version || null); };
+    try { sw.postMessage({ type: 'VERSION' }, [ch.port2]); } catch { resolve(null); }
+  });
+}
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
       const reg = await navigator.serviceWorker.register('./sw.js', { scope: './' });
+      swReg = reg;
+
+      // Installed during an earlier session and never applied.
+      if (reg.waiting && navigator.serviceWorker.controller) offerUpdate(reg.waiting);
+
       reg.addEventListener('updatefound', () => {
         const w = reg.installing;
         w?.addEventListener('statechange', () => {
           // Only offer the swap once an old worker is actually controlling the
           // page — otherwise this is just the first install, not an update.
-          if (w.state === 'installed' && navigator.serviceWorker.controller) {
-            const bar = document.getElementById('updateBar');
-            bar.hidden = false;
-            document.getElementById('updateBtn').onclick = () => {
-              w.postMessage({ type: 'SKIP_WAITING' });
-              bar.hidden = true;
-            };
-          }
+          if (w.state === 'installed' && navigator.serviceWorker.controller) offerUpdate(w);
         });
       });
+
       let reloading = false;
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (reloading) return;      // guard against a reload loop
         reloading = true;
         location.reload();
+      });
+
+      const quietCheck = (opts) => checkForUpdate(opts).catch(() => false);
+      quietCheck({ force: true });
+      setInterval(quietCheck, UPDATE_EVERY);
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') quietCheck();
       });
     } catch (e) { console.warn('service worker not registered:', e); }
   });

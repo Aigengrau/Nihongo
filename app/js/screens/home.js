@@ -43,9 +43,9 @@ export async function today({ view, setChrome }) {
     </a>`,
   });
 
-  const [inv, counts, st, lstats, prod, remWords, remKanji] = await Promise.all([
+  const [inv, counts, st, lstats, prod, remWords, remKanji, remGrammar] = await Promise.all([
     inventory(), todayCounts(), streak(), data.levelStats(), prodEligible().catch(() => []),
-    remainingNew('vocab'), remainingNew('kanji'),
+    remainingNew('vocab'), remainingNew('kanji'), remainingNew('grammar'),
   ]);
   const base = await store.setting('newPerDay', 10);
   const allowance = newAllowance(inv.due, base);
@@ -96,11 +96,8 @@ export async function today({ view, setChrome }) {
         ${learnTile('漢', 'kanji', `#/learn/${esc(level)}/kanji`, remKanji,
           `${esc(level)} · ${kanjiKnown} of ${lstats[level]?.kanji ?? 0} met`)}
 
-        <a class="tile" href="#/grammar/${esc(level)}">
-          <span class="tile-ico">文</span>
-          <span class="tile-main"><span class="tile-title">Grammar</span>
-            <span class="tile-sub">${esc(level)} · ${lstats[level]?.grammar ?? 0} points</span></span>
-          <span class="tile-end">${CHEV}</span></a>
+        ${learnTile('文', 'grammar points', `#/learn/${esc(level)}/grammar`, remGrammar,
+          `${esc(level)} · explained, then practised in real sentences`)}
 
         <a class="tile" href="#/watch/${esc(level)}">
           <span class="tile-ico">見</span>
@@ -162,9 +159,13 @@ export async function levels({ view, setChrome }) {
     fetch('./data/tracks/index.json').then((r) => r.json()).catch(() => []),
   ]);
 
+  // Vocabulary only: kanji and grammar cards carry the same `lv` but live in
+  // their own decks, and counting them here made the words bar claim progress
+  // against a word total they are not part of.
   const perLevel = {};
   for (const c of cards) {
-    const lv = c.lv || (c.deck?.startsWith('level:') ? c.deck.slice(6) : null);
+    if (!c.deck?.startsWith('level:')) continue;
+    const lv = c.deck.slice(6) || c.lv;
     if (!lv) continue;
     perLevel[lv] = perLevel[lv] || { started: 0, known: 0 };
     perLevel[lv].started++;
@@ -219,7 +220,7 @@ export async function level({ params, view, setChrome }) {
 
   const [lstats, list, cards] = await Promise.all([data.levelStats(), data.vocab(lv), store.all('cards')]);
   const s = lstats[lv] || {};
-  const mine = cards.filter((c) => c.lv === lv || c.deck === `level:${lv}`);
+  const mine = cards.filter((c) => c.deck === `level:${lv}`);   // words; kanji and grammar have their own decks
   const enrolled = mine.length > 0;
   const byStage = Object.fromEntries(STAGES.map((x) => [x, 0]));
   for (const c of mine) byStage[stage(c)]++;
@@ -262,7 +263,7 @@ export async function level({ params, view, setChrome }) {
       ${tile(`#/review/level:${lv}`, '復', 'Flashcards', `${mine.filter((c) => c.due <= Date.now() && c.state !== 0).length} due now`)}
       ${tile(`#/words/${lv}`, '語', 'All words', `${s.vocab ?? 0} words · flashcards, quiz, match, listen`)}
       ${tile(`#/kanji/${lv}`, '字', 'Browse kanji', `${s.kanji ?? 0} characters · flashcards, quiz, match`)}
-      ${tile(`#/grammar/${lv}`, '文', 'Grammar', `${s.grammar ?? 0} points with examples`)}
+      ${tile(`#/grammar/${lv}`, '文', 'Grammar', `${s.grammar ?? 0} points — learn, practise, review`)}
       ${tile(`#/conjugate/${lv}`, '活', 'Conjugation drill', 'Verbs and adjectives, all forms')}
       ${tile('#/produce', '話', 'Say it yourself', 'English in, Japanese out — unlocks as you master words')}
       ${tile(`#/read/${lv}`, '読', 'Short stories', 'Reading with tap-to-look-up')}

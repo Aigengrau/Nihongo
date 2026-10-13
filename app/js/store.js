@@ -109,6 +109,32 @@ export async function del(store, key) {
   try { await wrap(tx(store, 'readwrite').delete(key)); } catch (e) { console.warn('delete failed', e); }
 }
 
+/**
+ * Drop the newest review-log row for one card.
+ *
+ * Undo needs this: putting the card snapshot back restores the schedule, but
+ * the log is append-only, so without this the history would still show a review
+ * that the learner took back, and a future scheduler retune would learn from it.
+ */
+export async function delLastReview(cardKey) {
+  await open();
+  if (!db) { mem.delete(memKey('reviews', cardKey)); return; }
+  try {
+    const t = db.transaction('reviews', 'readwrite');
+    const s = t.objectStore('reviews');
+    await new Promise((resolve, reject) => {
+      const req = s.index('key').openCursor(IDBKeyRange.only(cardKey), 'prev');
+      req.onsuccess = () => {
+        const c = req.result;
+        if (c) c.delete();
+        resolve();
+      };
+      req.onerror = () => reject(req.error);
+    });
+    await new Promise((res, rej) => { t.oncomplete = res; t.onerror = () => rej(t.error); });
+  } catch (e) { console.warn('could not undo the review log entry', e); }
+}
+
 export async function all(store) {
   await open();
   if (!db) return [...mem.entries()].filter(([k]) => k.startsWith(store + '\u0000')).map(([, v]) => v);

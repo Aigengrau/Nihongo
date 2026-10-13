@@ -4,6 +4,8 @@ import * as store from '../store.js';
 import { esc, ruby, toast, buzz, speak, canSpeak, openWordSheet } from '../ui.js';
 import { review as schedule, preview, RATING, STATE, newCard } from '../srs.js';
 import { session, bumpToday, touchStreak, enrollLevel, enrollKanji, remainingNew, inventory, today as todayCounts } from '../progress.js';
+import { swipeable, swipeHint } from '../swipe.js';
+import { openGrammarSheet } from './grammar.js';
 
 const GRADES = [
   { g: RATING.AGAIN, label: 'Again' },
@@ -101,7 +103,7 @@ export async function learn({ params, query, view, setChrome, go, signal }) {
         <span>${i + 1} / ${cards.length}</span>
         <span class="bar" style="flex:1"><i style="width:${(i / cards.length) * 100}%"></i></span>
       </div>
-      <div class="card" style="margin-top:12px;text-align:center;padding:26px 16px">
+      <div class="card" id="face" style="margin-top:12px;text-align:center;padding:26px 16px">
         ${isKanji ? `
           <div class="jp-lg" lang="ja" style="font-size:78px;line-height:1.1">${esc(w.c)}</div>
           <div style="font-size:18px;font-weight:600;margin-top:12px">${esc((w.m || []).slice(0, 3).join(', '))}</div>
@@ -133,6 +135,16 @@ export async function learn({ params, query, view, setChrome, go, signal }) {
         ${canSpeak() ? `<button class="btn btn-sm" id="say" style="margin-top:14px">🔊 Hear it</button>` : ''}
       </div>
 
+      <!-- The two buttons that move the session on sit directly under the card
+           and stay stuck to the bottom of the screen. They used to be below the
+           example sentence and the words-that-use-it list, which on a kanji
+           card meant scrolling before every single tap. -->
+      <div class="act-bar">
+        <button class="btn" id="know">I knew this</button>
+        <button class="btn btn-block btn-primary" id="next">Got it</button>
+      </div>
+      ${i < 2 ? swipeHint('got it', 'go back') : ''}
+
       ${ex ? `<div class="card" style="margin-top:10px">
         <div class="small faint" style="margin-bottom:6px">In a sentence</div>
         <div class="jp-md" lang="ja">${esc(ex[0])}</div>
@@ -145,11 +157,7 @@ export async function learn({ params, query, view, setChrome, go, signal }) {
           <span class="small muted">${esc((v.m || [])[0] || '')}</span></div>`).join('')}
       </div>` : ''}
 
-      <div class="row" style="margin-top:14px;gap:8px">
-        <button class="btn btn-block" id="know">I knew this</button>
-        <button class="btn btn-block btn-primary" id="next">Got it</button>
-      </div>
-      <button class="btn btn-block btn-ghost" style="margin-top:8px" id="detail">Full details</button>
+      <button class="btn btn-block btn-ghost" style="margin-top:10px" id="detail">Full details</button>
     `;
 
     view.querySelector('#say')?.addEventListener('click', () => speak(sayText));
@@ -164,8 +172,28 @@ export async function learn({ params, query, view, setChrome, go, signal }) {
       i++;
       draw();
     };
+
+    // Going back has to undo, not just re-display: the card was scheduled and
+    // the day's counter bumped the moment you moved on. `cards[i]` is still the
+    // untouched snapshot, so putting it back is the whole reversal.
+    const back = async () => {
+      if (i === 0) return toast('This is the first card');
+      i--;
+      const prev = cards[i];
+      await store.put('cards', prev);
+      await store.delLastReview(prev.key);
+      await bumpToday(isKanji ? { newKanji: -1 } : { new: -1 });
+      draw();
+    };
+
     view.querySelector('#next').addEventListener('click', () => advance(RATING.GOOD));
     view.querySelector('#know').addEventListener('click', () => advance(RATING.EASY));
+    swipeable(view.querySelector('#face'), {
+      onForward: () => advance(RATING.GOOD),
+      onBack: back,
+      forwardLabel: 'got it',
+      signal,
+    });
 
     if (sayText) speak(sayText);
   };
@@ -175,9 +203,10 @@ export async function learn({ params, query, view, setChrome, go, signal }) {
 }
 
 // ---------------------------------------------------------------- Review
-export async function review({ params, view, setChrome, go }) {
+export async function review({ params, view, setChrome, go, signal }) {
   const deck = params[0] || null;
-  setChrome({ title: deck ? `Review · ${deck.replace('level:', '')}` : 'Review', back: true });
+  const deckLabel = deck ? deck.replace('level:', '').replace('grammar:', 'grammar · ') : null;
+  setChrome({ title: deckLabel ? `Review · ${deckLabel}` : 'Review', back: true });
 
   const { queue, buried } = await session({ deck });
   if (!queue.length) {
@@ -192,8 +221,10 @@ export async function review({ params, view, setChrome, go }) {
   const { byId } = await data.allVocab();
   const savedRows = new Map((await store.all('saved')).map((s) => [s.key, s]));
   const furiSetting = await store.setting('furigana', 'auto');
+  const grammarByGid = await loadGrammar(queue);
 
   let i = 0, shown = false, right = 0;
+  const graded = [];   // the rating each card was given, so going back can undo it
   const started = Date.now();
   let credited = false;
 
@@ -221,6 +252,7 @@ export async function review({ params, view, setChrome, go }) {
     if (i >= queue.length) return finish();
     const card = queue[i];
     const w = card.vocabId != null ? byId.get(card.vocabId) : null;
+    const g = card.gid ? grammarByGid.get(card.gid) : null;
     const savedRow = savedRows.get(card.word);
 
     const front = w ? w.w : (card.word || '?');
@@ -228,76 +260,130 @@ export async function review({ params, view, setChrome, go }) {
     const meaning = w ? w.m.slice(0, 3).join(', ') : (savedRow?.meaning || '');
     const segs = w?.f;
     const showFuri = furiSetting === 'always';
-    const ex = w?.x?.[0];
+    const ex = g ? (g.x || [])[0] : w?.x?.[0];
     const iv = preview(card);
+    const lv = w?.lv || card.lv;
+    const say = g ? (ex?.[0] || '') : reading;
+
+    // A grammar point is a pattern, not a word: it gets its own face, because
+    // 46px of "V plain / i-adj / na-adj な / noun の + とき(に)" fits nothing.
+    const faceHTML = g || card.gid ? `
+        <div class="jp-md" lang="ja" style="font-weight:650">${esc(g?.pattern || card.pattern || front)}</div>
+        ${shown ? `
+          <div style="font-size:17px;font-weight:650">${esc(g?.meaning || card.meaning || '')}</div>
+          ${g?.formation ? `<div class="jp-sm" lang="ja" style="color:var(--text-dim)">${esc(g.formation)}</div>` : ''}
+          ${ex ? `<div style="margin-top:8px;border-top:1px solid var(--line);padding-top:10px">
+              <div class="jp-sm" lang="ja">${esc(ex[0])}</div>
+              <div class="ex-en">${esc(ex[1])}</div></div>` : ''}
+        ` : `<div class="small faint">what does this pattern do?</div>`}`
+      : `
+        <div class="${showFuri ? '' : 'no-furi'}" id="jp">
+          <div class="jp-lg" lang="ja">${segs ? ruby(segs, front) : esc(front)}</div>
+        </div>
+        ${shown ? `
+          <div class="jp-md muted" lang="ja">${esc(reading)}</div>
+          <div style="font-size:19px;font-weight:650">${esc(meaning)}</div>
+          ${ex ? `<div style="margin-top:8px;border-top:1px solid var(--line);padding-top:10px">
+              <div class="jp-sm" lang="ja">${esc(ex[0])}</div>
+              <div class="ex-en">${esc(ex[1])}</div></div>` : ''}
+        ` : `<div class="small faint">tap to reveal</div>`}`;
 
     view.innerHTML = `
       <div class="review-wrap">
         <div class="review-top">
           <span>${i + 1} / ${queue.length}</span>
           <span class="bar" style="flex:1"><i style="width:${(i / queue.length) * 100}%"></i></span>
-          ${w ? `<span class="lv-chip lv-${w.lv}">${w.lv}</span>` : ''}
+          ${card.gid ? '<span class="pos-tag" style="margin:0">文</span>' : ''}
+          ${lv ? `<span class="lv-chip lv-${lv}">${esc(lv)}</span>` : ''}
         </div>
 
-        <div class="review-card" id="face">
-          <div class="${showFuri ? '' : 'no-furi'}" id="jp">
-            <div class="jp-lg" lang="ja">${segs ? ruby(segs, front) : esc(front)}</div>
-          </div>
-          ${shown ? `
-            <div class="jp-md muted" lang="ja">${esc(reading)}</div>
-            <div style="font-size:19px;font-weight:650">${esc(meaning)}</div>
-            ${ex ? `<div style="margin-top:8px;border-top:1px solid var(--line);padding-top:10px">
-                <div class="jp-sm" lang="ja">${esc(ex[0])}</div>
-                <div class="ex-en">${esc(ex[1])}</div></div>` : ''}
-          ` : `<div class="small faint">tap to reveal</div>`}
-        </div>
+        <div class="review-card" id="face">${faceHTML}</div>
 
         ${shown ? `
           <div class="review-grade">
-            ${GRADES.map((g) => `<button class="grade" data-g="${g.g}">
-              ${g.label}<small>${esc(iv[Object.keys(RATING).find((k) => RATING[k] === g.g)])}</small>
+            ${GRADES.map((gr) => `<button class="grade" data-g="${gr.g}">
+              ${gr.label}<small>${esc(iv[Object.keys(RATING).find((k) => RATING[k] === gr.g)])}</small>
             </button>`).join('')}
           </div>
         ` : `<button class="btn btn-primary btn-block reveal-btn" id="reveal">Show answer</button>`}
+        ${i < 2 ? swipeHint('skip (got it)', 'go back') : ''}
       </div>
     `;
 
-    const reveal = () => { if (!shown) { shown = true; draw(); if (reading) speak(reading); } };
+    const reveal = () => { if (!shown) { shown = true; draw(); if (say) speak(say); } };
     view.querySelector('#reveal')?.addEventListener('click', reveal);
-    view.querySelector('#face').addEventListener('click', (e) => {
-      if (shown) { if (w) openWordSheet(w.w); return; }
-      reveal();
+    view.querySelector('#face').addEventListener('click', () => {
+      if (!shown) return reveal();
+      if (g) openGrammarSheet(g);
+      else if (w) openWordSheet(w.w);
     });
 
-    view.querySelectorAll('.grade').forEach((b) => b.addEventListener('click', async () => {
-      const g = +b.dataset.g;
+    const grade = async (rating) => {
       const wasNew = card.state === STATE.NEW;
-      const { card: next, log } = schedule(card, g);
+      const { card: next, log } = schedule(card, rating);
       await store.put('cards', next);
       await store.put('reviews', log);
       // A new card met here still counts against the daily new-card allowance,
       // otherwise tapping "Keep going" walks straight past the throttle.
-      await bumpToday({ reviews: 1, correct: g > 1 ? 1 : 0, ...(wasNew ? { new: 1 } : {}) });
+      await bumpToday({ reviews: 1, correct: rating > 1 ? 1 : 0, ...(wasNew ? { new: 1 } : {}) });
       await credit();
-      if (g > 1) right++;
-      buzz(g === 1 ? 20 : 8);
+      graded[i] = rating;
+      if (rating > 1) right++;
+      buzz(rating === 1 ? 20 : 8);
       i++; shown = false;
       draw();
-    }));
+    };
 
-    // Swipe: right = Good, left = Again. Vertical drags still scroll.
-    let x0 = null, y0 = null;
-    const face = view.querySelector('#face');
-    face.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
-    face.addEventListener('touchend', (e) => {
-      if (x0 === null || !shown) { x0 = null; return; }
-      const dx = e.changedTouches[0].clientX - x0;
-      const dy = Math.abs(e.changedTouches[0].clientY - y0);
-      x0 = null;
-      if (Math.abs(dx) < 70 || dy > 50) return;
-      view.querySelector(`.grade[data-g="${dx > 0 ? RATING.GOOD : RATING.AGAIN}"]`)?.click();
-    }, { passive: true });
+    // Back undoes the grade: `queue[i]` is the snapshot taken before it was
+    // scheduled, so writing it back restores the real due date, and the day's
+    // counters are rolled back with it.
+    const back = async () => {
+      if (i === 0) return toast('This is the first card');
+      i--;
+      const prev = queue[i];
+      const rating = graded[i];
+      await store.put('cards', prev);
+      await store.delLastReview(prev.key);
+      await bumpToday({
+        reviews: -1,
+        correct: rating > 1 ? -1 : 0,
+        ...(prev.state === STATE.NEW ? { new: -1 } : {}),
+      });
+      if (rating > 1) right--;
+      graded[i] = null;
+      shown = true;        // you came back to re-grade it, so the answer stays up
+      draw();
+    };
+
+    view.querySelectorAll('.grade').forEach((b) =>
+      b.addEventListener('click', () => grade(+b.dataset.g)));
+
+    // One gesture language with the rest of the app: left skips the card and
+    // counts it as known, right steps back. This replaced "right = Good,
+    // left = Again", which meant the same flick did different things depending
+    // on whether the answer happened to be showing.
+    swipeable(view.querySelector('#face'), {
+      onForward: () => grade(RATING.GOOD),
+      onBack: back,
+      forwardLabel: 'got it',
+      signal,
+    });
   };
 
   draw();
+}
+
+/** The grammar points behind any grammar cards in this queue. */
+async function loadGrammar(queue) {
+  const byGid = new Map();
+  const levels = [...new Set(queue.filter((c) => c.gid).map((c) => c.lv))].filter(Boolean);
+  for (const lv of levels) {
+    try {
+      for (const g of await data.grammar(lv)) byGid.set(g.gid, g);
+    } catch {
+      // Not downloaded: the card carries its own pattern and meaning, which is
+      // enough to review it. Only the full explanation is missing.
+    }
+  }
+  return byGid;
 }

@@ -67,9 +67,15 @@
 
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
-<div id="updateBar" class="updatebar" hidden>
-  <span>A new version is ready.</span>
-  <button id="updateBtn" class="btn btn-sm">Restart</button>
+<!-- Only ever visible when a new version has finished downloading in the
+     background. Tapping Update swaps the worker and reloads; nothing is
+     reinstalled and nothing you have saved is touched. -->
+<div id="updateBar" class="updatebar" hidden role="status">
+  <span><b>Update ready</b><span class="small muted"> · new version downloaded</span></span>
+  <span class="row" style="gap:6px">
+    <button id="updateLater" class="btn btn-sm btn-ghost">Later</button>
+    <button id="updateBtn" class="btn btn-sm btn-primary">Update</button>
+  </span>
 </div>
 
 <script type="module" src="./js/main.js"></script>

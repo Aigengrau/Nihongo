@@ -1,11 +1,10 @@
-// Browsing surfaces: word list, kanji, grammar, kana, conjugation drill.
+// Browsing surfaces: word list, kanji, kana, conjugation drill.
+// Grammar has its own screen — it is taught, not just listed (screens/grammar.js).
 import * as data from '../data.js';
 import * as store from '../store.js';
-import { esc, ruby, toast, buzz, speak, canSpeak, openWordSheet, openSheet } from '../ui.js';
+import { esc, ruby, buzz, speak, openWordSheet, openSheet } from '../ui.js';
 import { stage } from '../progress.js';
 import { runDrill, modeBar } from './drill.js';
-
-const CHEV = `<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
 // ---------------------------------------------------------------- words
 export async function words({ params, view, setChrome, signal }) {
@@ -122,111 +121,6 @@ export async function kanjiList({ params, view, setChrome, signal }) {
       const w = ev.target.closest('[data-word]');
       if (w) openWordSheet(w.dataset.word);
     });
-  });
-}
-
-// ---------------------------------------------------------------- grammar
-export async function grammarList({ params, view, setChrome, signal }) {
-  const lv = params[0];
-  setChrome({ title: `${lv} grammar`, back: true });
-  const list = await data.grammar(lv);
-  view.innerHTML = `
-    <p class="small faint" style="margin:0 2px 12px">${list.length} points, in teaching order.</p>
-    <div class="list">
-      ${list.map((g) => `<a class="wrow" href="#/grammar/${lv}/${g.id}">
-        <span class="wrow-main">
-          <span class="wrow-jp" lang="ja" style="font-size:17px">${esc(g.pattern)}</span>
-          <span class="wrow-en">${esc(g.meaning)}</span>
-        </span>
-        <span class="tile-end">${CHEV}</span>
-      </a>`).join('')}
-    </div>`;
-}
-
-export async function grammarPoint({ params, view, setChrome, signal }) {
-  const [lv, idStr] = params;
-  const list = await data.grammar(lv);
-  const g = list.find((x) => x.id === +idStr);
-  if (!g) { view.innerHTML = `<div class="empty"><p>Not found.</p></div>`; return; }
-  setChrome({ title: lv + ' grammar', back: true });
-
-  const related = (g.related || [])
-    .map((rid) => list.find((x) => x.gid === rid))
-    .filter(Boolean);
-
-  view.innerHTML = `
-    <h2 class="jp-md" lang="ja" style="font-weight:700">${esc(g.pattern)}</h2>
-    <p style="font-size:17px;margin-top:4px">${esc(g.meaning)}</p>
-    <div style="margin-top:10px">
-      <span class="lv-chip lv-${g.lv}">${g.lv}</span>
-      ${g.formality ? `<span class="pos-tag">${esc(g.formality)}</span>` : ''}
-    </div>
-
-    ${g.formation ? `<h3 class="section-title">How to build it</h3>
-      <div class="card jp-sm" lang="ja">${esc(g.formation)}</div>` : ''}
-
-    ${g.detail ? `<h3 class="section-title">What it means</h3><p class="muted">${esc(g.detail)}</p>` : ''}
-
-    ${g.notes?.length ? `<h3 class="section-title">Watch out</h3>
-      <ul class="muted small" style="margin:0;padding-left:18px;display:grid;gap:6px">
-        ${g.notes.map((n) => `<li>${esc(n)}</li>`).join('')}
-      </ul>` : ''}
-
-    ${g.x?.length ? `<h3 class="section-title">Examples</h3>
-      <div class="stack">
-        ${g.x.map(([ja, en]) => `<div class="card">
-          <div class="jp-md" lang="ja">${esc(ja)}</div>
-          <div class="ex-en">${esc(en)}</div>
-        </div>`).join('')}
-      </div>` : ''}
-
-    ${related.length ? `<h3 class="section-title">Compare with</h3>
-      <div class="list">${related.map((r) => `<a class="wrow" href="#/grammar/${r.lv}/${r.id}">
-        <span class="wrow-main"><span class="wrow-jp" lang="ja" style="font-size:16px">${esc(r.pattern)}</span>
-        <span class="wrow-en">${esc(r.meaning)}</span></span><span class="tile-end">${CHEV}</span></a>`).join('')}</div>` : ''}
-
-    <button class="btn btn-primary btn-block" id="practice" style="margin-top:18px">Practise this point</button>
-    ${g.draft ? `<p class="small faint center" style="margin-top:14px">
-      This explanation is community-curated and not yet native-reviewed.</p>` : ''}
-  `;
-
-  view.querySelector('#practice').addEventListener('click', () => cloze(g));
-}
-
-/** Cloze drill: blank the pattern out of a real example and rebuild it. */
-function cloze(g) {
-  const ex = (g.x || [])[0];
-  if (!ex) return toast('No example to practise with');
-  // Blank the longest literal Japanese run of the pattern that appears in the sentence.
-  const bits = (g.pattern.match(/[぀-ヿ一-鿿]+/g) || []).sort((a, b) => b.length - a.length);
-  const target = bits.find((b) => ex[0].includes(b));
-  const blanked = target ? ex[0].replace(target, '［　　］') : ex[0];
-
-  const distractors = ['ので', 'のに', 'から', 'ため', 'けど', 'まで', 'だけ', 'しか']
-    .filter((d) => d !== target).sort(() => 0.5 - Math.random()).slice(0, 3);
-  const options = [target || g.pattern, ...distractors].sort(() => 0.5 - Math.random());
-
-  const body = openSheet(`
-    <h3 style="margin-bottom:10px">Fill the blank</h3>
-    <div class="card"><div class="jp-md" lang="ja">${esc(blanked)}</div>
-      <div class="ex-en">${esc(ex[1])}</div></div>
-    <div class="stack" style="margin-top:14px" id="opts">
-      ${options.map((o) => `<button class="btn btn-block" data-o="${esc(o)}" lang="ja">${esc(o)}</button>`).join('')}
-    </div>
-    <p class="small faint center" style="margin-top:12px" id="fb"></p>
-    <button class="btn btn-block btn-ghost" style="margin-top:8px" data-close>Close</button>
-  `);
-
-  body.querySelector('#opts').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-o]');
-    if (!b) return;
-    const ok = b.dataset.o === (target || g.pattern);
-    b.classList.add(ok ? 'btn-primary' : '');
-    b.style.borderColor = ok ? 'var(--green)' : 'var(--accent)';
-    body.querySelector('#fb').innerHTML = ok
-      ? `<span style="color:var(--green)">Correct.</span> ${esc(ex[0])}`
-      : `<span style="color:var(--accent)">Not quite.</span> The answer is <b lang="ja">${esc(target || g.pattern)}</b>`;
-    buzz(ok ? 8 : 20);
   });
 }
 

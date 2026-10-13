@@ -14,7 +14,7 @@
  *  - Range requests are answered with a real 206, or Safari's <audio> silently
  *    refuses to play.
  */
-const BUILD = 'v1.1.0';
+const BUILD = 'v1.2.0';
 const SHELL = `shell-${BUILD}`;
 // Versioned with the build: a fixed name meant shipped data corrections
 // could never reach anyone who had already installed.
@@ -47,6 +47,9 @@ const SHELL_FILES = [
   './js/screens/produce.js',
   './js/screens/listen.js',
   './js/screens/drill.js',
+  './js/screens/grammar.js',
+  './js/grammar.js',
+  './js/swipe.js',
   './icons/icon.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -91,22 +94,53 @@ self.addEventListener('activate', (e) => {
     if (self.registration.navigationPreload) {
       try { await self.registration.navigationPreload.enable(); } catch { /* not supported */ }
     }
+    await adoptPreviousData();
     const keep = new Set([SHELL, DATA, MEDIA]);
     for (const k of await caches.keys()) if (!keep.has(k)) await caches.delete(k);
     await self.clients.claim();
 
-    // Warm the core data in the background; failures are not fatal.
+    // Core data is re-fetched on every build, so a shipped correction reaches
+    // everyone. Failures are not fatal — an update applied on the train still
+    // leaves a working app.
     const cache = await caches.open(DATA);
     for (const url of CORE_DATA) {
-      try { if (!(await cache.match(url))) await cache.add(new Request(url, { cache: 'reload' })); }
-      catch { /* will be fetched on demand */ }
+      // add(), not put(): it refuses a 404 instead of caching the error page.
+      try { await cache.add(new Request(url, { cache: 'reload' })); }
+      catch { /* keep whatever was carried over */ }
     }
   })());
 });
 
+/**
+ * Carry the previous build's downloaded data into this build's cache.
+ *
+ * The data cache is versioned per build so corrections can ship, but throwing
+ * it away outright meant every update silently deleted the levels someone had
+ * downloaded for offline — turning "update" into "lose the app on the train".
+ * The core files above are refreshed regardless; the heavy ones move across,
+ * and "Download for offline" re-fetches them whenever the learner wants.
+ */
+async function adoptPreviousData() {
+  const old = (await caches.keys()).filter((k) => k.startsWith('data-') && k !== DATA);
+  if (!old.length) return;
+  const to = await caches.open(DATA);
+  for (const name of old) {
+    const from = await caches.open(name);
+    for (const req of await from.keys()) {
+      try {
+        if (await to.match(req)) continue;
+        const res = await from.match(req);
+        if (res) await to.put(req, res);
+      } catch { /* one file failing must not abandon the rest */ }
+    }
+  }
+}
+
 self.addEventListener('message', (e) => {
   if (e.data?.type === 'SKIP_WAITING') self.skipWaiting();
   if (e.data?.type === 'CACHE_LEVEL') e.waitUntil(cacheLevel(e.data.level, e.source));
+  // So Settings can show which build is actually running.
+  if (e.data?.type === 'VERSION') e.ports?.[0]?.postMessage({ version: BUILD });
 });
 
 async function cacheLevel(level, client) {

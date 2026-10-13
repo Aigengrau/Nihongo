@@ -8,6 +8,7 @@ import * as data from '../data.js';
 import * as store from '../store.js';
 import { esc, ruby, toast, buzz, speak, canSpeak, openWordSheet, cycleSpeechRate, rateLabel } from '../ui.js';
 import { newCard } from '../srs.js';
+import { swipeable, swipeHint } from '../swipe.js';
 
 export const MODES = [
   { id: 'list', label: 'List' },
@@ -118,6 +119,7 @@ function flashcards({ bar, cards, view, signal, openDetail, kind, lv }) {
         <button class="btn btn-block btn-primary" id="next">${i >= deck.length - 1 ? 'Start over' : 'Next'}</button>
       </div>
       <button class="btn btn-block btn-ghost" style="margin-top:8px" id="detail">Full details</button>
+      ${i < 2 ? swipeHint('next', 'previous') : ''}
       <p class="small faint center" style="margin-top:10px">
         A no-pressure pass over ${esc(lv)}. Nothing here changes your review schedule.</p>`;
 
@@ -128,12 +130,17 @@ function flashcards({ bar, cards, view, signal, openDetail, kind, lv }) {
     view.querySelector('#say')?.addEventListener('click', () => speak(c.speak), { signal });
     view.querySelector('#rate')?.addEventListener('click', (e) => { e.currentTarget.textContent = rateLabel(cycleSpeechRate()); speak(c.speak); }, { signal });
     view.querySelector('#detail').addEventListener('click', () => openDetail(c), { signal });
-    view.querySelector('#prev').addEventListener('click', () => { i = Math.max(0, i - 1); shown = false; paint(); }, { signal });
-    view.querySelector('#next').addEventListener('click', () => {
+    const prev = () => { i = Math.max(0, i - 1); shown = false; paint(); };
+    const next = () => {
       if (i >= deck.length - 1) { deck = shuffle(cards); i = 0; } else i++;
       shown = false; paint();
-    }, { signal });
+    };
+    view.querySelector('#prev').addEventListener('click', prev, { signal });
+    view.querySelector('#next').addEventListener('click', next, { signal });
     view.querySelector('#reshuffle').addEventListener('click', () => { deck = shuffle(cards); i = 0; shown = false; paint(); }, { signal });
+    swipeable(view.querySelector('#face'), {
+      onForward: next, onBack: i > 0 ? prev : null, forwardLabel: 'next', backLabel: 'back', signal,
+    });
   };
   paint();
 }

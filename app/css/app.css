@@ -506,16 +506,63 @@ rt {
 }
 .match-cell[data-done="1"] { opacity: .35; pointer-events: none; }
 
-/* ---------- comparison table (keigo, dialects, counters, register) ---------- */
-.xtable { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-.xtable th {
-  text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line);
-  color: var(--text-faint); font-size: 11px; text-transform: uppercase;
-  letter-spacing: .06em; white-space: nowrap;
+/* ---------- comparison cards (keigo, dialects, counters, register) ---------- */
+/* One card per row, each form on its own line under its own label. The old
+   table put four columns of Japanese in a horizontal scroller, which on a
+   phone is unreadable — see the comment in screens/tracks.js. */
+.xcard { padding: 13px 14px; }
+.xcard-label {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em;
+  color: var(--text-faint); font-weight: 700;
 }
-.xtable td { padding: 9px 10px; border-top: 1px solid var(--line); vertical-align: top; }
-.xtable td:not(:last-child) { white-space: nowrap; }
-.xtable td:last-child { min-width: 140px; }
+.xcard-label-alt { color: color-mix(in srgb, var(--accent) 80%, var(--text-dim)); }
+.xcard-head, .xcard-form {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 2px; font-weight: 600;
+}
+.xcard-head .wtext, .xcard-form .wtext { flex: 1; min-width: 0; }
+.xcard-form { font-weight: 500; }
+.xcard-meta { margin-top: 2px; font-size: 15px; color: var(--text-dim); font-family: var(--jp); }
+.xsay { flex: none; min-height: 34px; padding: 0 10px; }
+.xrow { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.xcard-note { margin-top: 10px; color: var(--indigo); }
+
+/* ---------- swipeable cards ---------- */
+/* touch-action keeps the page scrollable: we only claim the horizontal axis. */
+.swipe { position: relative; touch-action: pan-y; }
+.swipe-hint {
+  position: absolute; top: 8px; z-index: 1;
+  font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+  opacity: 0; pointer-events: none; transition: opacity .1s linear;
+}
+.swipe-hint-f { left: 12px; color: var(--green); }
+.swipe-hint-b { right: 12px; color: var(--indigo); }
+.swipe-tip { margin-top: 10px; letter-spacing: .02em; }
+
+/* ---------- sticky action bar ---------- */
+/* The buttons that move a session on must never need a scroll to reach, no
+   matter how tall the card above them is. */
+.act-bar {
+  position: sticky; z-index: 23;
+  bottom: calc(var(--tab-h) + var(--safe-b) + 8px);
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 14px; padding: 8px; border-radius: 16px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: saturate(160%) blur(12px);
+  border: 1px solid var(--line);
+}
+/* The secondary button keeps its own width and its label on one line; without
+   this "I knew this" wraps and the bar grows a second row. */
+.act-bar .btn { white-space: nowrap; }
+.act-bar .btn:not(.btn-block) { flex: none; padding: 0 14px; }
+
+/* ---------- grammar practice ---------- */
+.blank {
+  display: inline-block; width: 3.4em; height: 1em; vertical-align: -0.12em;
+  margin: 0 2px; border-radius: 5px;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  border-bottom: 2px solid var(--accent);
+}
 
 /* ---------- register / dialect marks ---------- */
 /* A small raised marker on a word that is casual or dialect, so a learner can

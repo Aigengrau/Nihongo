@@ -6,7 +6,7 @@
 // Replaces the old business-only screen; business is now one track among six.
 import * as store from '../store.js';
 import * as dict from '../dict.js';
-import { esc, toast, buzz, speak, canSpeak, tappable, bindWordTaps, openSheet } from '../ui.js';
+import { esc, toast, buzz, speak, canSpeak, tappable, bindWordTaps } from '../ui.js';
 import { newCard } from '../srs.js';
 
 const CHEV = `<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
@@ -129,18 +129,44 @@ function transform(m, view, signal) {
   const has = (it, k) => it[k] && it[k] !== '—';
   let mode = 'table';
 
-  const table = () => `
-    <div class="card" style="padding:0;overflow-x:auto">
-      <table class="xtable">
-        <thead><tr>${cols.map((c) => `<th>${esc(c.label)}</th>`).join('')}<th>meaning</th></tr></thead>
-        <tbody>
-          ${m.items.map((it) => `<tr>
-            ${cols.map((c) => `<td lang="ja" class="jp-sm">${esc(it[c.key] ?? '—')}</td>`).join('')}
-            <td class="small muted">${esc(it.en || '')}${it.note ? `<div class="small faint" style="margin-top:3px">${esc(it.note)}</div>` : ''}</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
+  /**
+   * One card per row, not one table.
+   *
+   * This was a <table> with a column per form and `white-space: nowrap`, which
+   * on a phone meant a four-column grid of Japanese inside a horizontal
+   * scroller: every form too small to read and half of them off-screen. The
+   * same data as a stack of cards — the form you know at the top, each
+   * transformation under its own label — needs no sideways scrolling and gives
+   * every form room to be read, heard and tapped for a definition.
+   */
+  // Not every column is a form you could say: 地方 is a region, and the counter
+  // tables are indexed by a bare numeral. Those are labels on the row, so they
+  // get no voice button and no dictionary lookup.
+  const META = new Set(['region', 'where', 'n', 'number']);
+  const form = (it, c, { head = false } = {}) => {
+    if (META.has(c.key)) return `<div class="xcard-meta">${esc(it[c.key])}</div>`;
+    return `<div class="jp-md ${head ? 'xcard-head' : 'xcard-form'}" lang="ja">${tappable(it[c.key] ?? '—')}
+      ${canSpeak() && has(it, c.key) ? `<button class="btn btn-sm xsay" data-say="${esc(it[c.key])}" aria-label="Hear it">🔊</button>` : ''}
     </div>`;
+  };
+
+  const table = () => {
+    const [first, ...rest] = cols;
+    return `<div class="stack" id="xcards">
+      ${m.items.map((it) => `
+        <div class="card xcard">
+          <div class="xcard-label">${esc(first.label)}</div>
+          ${form(it, first, { head: true })}
+          ${it.en ? `<div class="ex-en">${esc(it.en)}</div>` : ''}
+          ${rest.filter((c) => has(it, c.key)).map((c) => `
+            <div class="xrow">
+              <div class="xcard-label xcard-label-alt">${esc(c.label)}</div>
+              ${form(it, c)}
+            </div>`).join('')}
+          ${it.note ? `<p class="small xcard-note">${esc(it.note)}</p>` : ''}
+        </div>`).join('')}
+    </div>`;
+  };
 
   let asked = 0, right = 0;
   const drill = () => {
@@ -199,13 +225,22 @@ function transform(m, view, signal) {
       <p class="muted small" style="margin-top:4px">${esc(m.blurb)}</p>
       ${m.note ? `<p class="small" style="margin-top:8px;color:var(--indigo)">${esc(m.note)}</p>` : ''}
       <div class="seg" style="margin:14px 0">
-        <button data-m="table" aria-pressed="${mode === 'table'}">Table</button>
+        <button data-m="table" aria-pressed="${mode === 'table'}">Compare</button>
         <button data-m="drill" aria-pressed="${mode === 'drill'}">Drill</button>
       </div>
       <div id="pane">${mode === 'table' ? table() : ''}</div>`;
     view.querySelectorAll('[data-m]').forEach((b) => b.addEventListener('click', () => {
       mode = b.dataset.m; render();
     }, { signal }));
+
+    const cards = view.querySelector('#xcards');
+    if (cards) {
+      bindWordTaps(cards);
+      cards.addEventListener('click', (e) => {
+        const say = e.target.closest('[data-say]');
+        if (say) speak(say.dataset.say);
+      }, { signal });
+    }
     if (mode === 'drill') drill();
   };
   render();

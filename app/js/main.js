@@ -122,6 +122,14 @@ async function render() {
         <p class="small faint" style="margin-top:8px">${String(e.message || e)}</p></div>`;
     }
     if (token !== currentToken) return;
+    // ?w= opens the word sheet over whatever just rendered. A notification
+    // about a word has to land ON that word, not on a list of six hundred.
+    const wanted = new URLSearchParams(query).get('w');
+    if (wanted) {
+      import('./ui.js')
+        .then((m) => { if (token === currentToken) m.openWordSheet(wanted); })
+        .catch(() => {});
+    }
     for (const [name, tre] of Object.entries(TABS)) {
       const a = tabbar.querySelector(`[data-tab="${name}"]`);
       if (a) a.setAttribute('aria-current', tre.test(path) ? 'page' : 'false');
@@ -135,6 +143,17 @@ async function render() {
 
 backBtn.addEventListener('click', () => history.back());
 window.addEventListener('hashchange', render);
+
+// Tapping a reminder. The worker focuses the existing window and sends the
+// route here rather than navigating it, so an open review survives the trip.
+navigator.serviceWorker?.addEventListener('message', (e) => {
+  if (e.data?.type !== 'NAVIGATE' || !e.data.url) return;
+  const h = String(e.data.url).replace(/^#?/, '#');
+  // Assigning the hash it already has fires no hashchange, so the screen the
+  // notification pointed at would never repaint.
+  if (location.hash === h) render();
+  else location.hash = h;
+});
 
 // Tapping the tab you are already on must refresh it. Setting location.hash to
 // its current value fires no hashchange, so Today would keep showing the counts
@@ -217,6 +236,10 @@ async function boot() {
   appbar.hidden = false;
   tabbar.hidden = false;
   await render();
+
+  // Reminders arm themselves after first paint, and off the critical path:
+  // scheduling a word of the day is never a reason for the app not to open.
+  import('./notify.js').then((n) => n.start()).catch(() => {});
 }
 
 boot().catch((e) => {

@@ -14,7 +14,7 @@
  *  - Range requests are answered with a real 206, or Safari's <audio> silently
  *    refuses to play.
  */
-const BUILD = 'v1.2.1';
+const BUILD = 'v1.3.0';
 const SHELL = `shell-${BUILD}`;
 // Versioned with the build: a fixed name meant shipped data corrections
 // could never reach anyone who had already installed.
@@ -51,6 +51,7 @@ const SHELL_FILES = [
   './js/grammar.js',
   './js/swipe.js',
   './js/update.js',
+  './js/notify.js',
   './icons/icon.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -142,6 +143,7 @@ self.addEventListener('message', (e) => {
   if (e.data?.type === 'CACHE_LEVEL') e.waitUntil(cacheLevel(e.data.level, e.source));
   // So Settings can show which build is actually running.
   if (e.data?.type === 'VERSION') e.ports?.[0]?.postMessage({ version: BUILD });
+  if (e.data?.type === 'RUN_REMINDERS') e.waitUntil(runReminders());
 });
 
 async function cacheLevel(level, client) {
@@ -303,4 +305,152 @@ function stripRange(headers) {
   const h = new Headers();
   for (const [k, v] of headers) if (k.toLowerCase() !== 'range') h.set(k, v);
   return h;
+}
+
+/* ---------------------------------------------------------------- reminders
+ *
+ * The page writes every notification out in full — title, body, the link to
+ * tap — days in advance, into the `progress` store under a `notif:` prefix.
+ * See js/notify.js, which is where all of the thinking lives.
+ *
+ * This end knows no Japanese and loads no data. It wakes up, shows whatever
+ * came due, and marks it consumed. That is deliberate: a worker that picked
+ * its own word of the day would be a second copy of the app's content logic,
+ * and the two would drift.
+ */
+const NOTIF_TAG = 'nihongo-notify';
+const NOTIF_PREFIX = 'notif:';
+const NOTIF_GRACE = 2 * 60 * 60 * 1000;
+const NOTIF_DB = 'nihongo';
+
+self.addEventListener('periodicsync', (e) => {
+  if (e.tag === NOTIF_TAG) e.waitUntil(runReminders());
+});
+
+// A one-off sync is not a timer, but it is one more moment the browser is
+// willing to wake us, and a reminder delivered late beats one never delivered.
+self.addEventListener('sync', (e) => {
+  if (e.tag === NOTIF_TAG) e.waitUntil(runReminders());
+});
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const hash = String(e.notification.data?.url || '#/today').replace(/^#?/, '#');
+  e.waitUntil((async () => {
+    const target = new URL(`./index.html${hash}`, self.location.href);
+    const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const c of windows) {
+      if (new URL(c.url).origin !== target.origin) continue;
+      try { await c.focus(); } catch { /* a focus the OS refused is not fatal */ }
+      // A hash change is all this needs. navigate() would reload the app and
+      // throw away a review in progress to show someone a word of the day.
+      c.postMessage({ type: 'NAVIGATE', url: hash });
+      return;
+    }
+    await self.clients.openWindow(target.href);
+  })());
+});
+
+/**
+ * Open the app's database WITHOUT a version, so this can never run an upgrade
+ * of its own and race the page's.
+ */
+function notifDB() {
+  return new Promise((resolve) => {
+    let req;
+    try { req = indexedDB.open(NOTIF_DB); } catch { return resolve(null); }
+    req.onerror = () => resolve(null);
+    req.onblocked = () => resolve(null);
+    req.onsuccess = () => {
+      const db = req.result;
+      if (db.objectStoreNames.contains('progress')) return resolve(db);
+      // The app has never run on this device, so open() just conjured an empty
+      // database. Leaving it behind would be worse than useless: the app opens
+      // at version 1, would find the version already matching, and so would
+      // never get the upgrade that creates its stores. A database with no
+      // stores at all can only be this one, so it is safe to take back.
+      const conjured = db.objectStoreNames.length === 0;
+      db.close();
+      if (conjured) { try { indexedDB.deleteDatabase(NOTIF_DB); } catch { /* nothing to undo */ } }
+      resolve(null);
+    };
+  });
+}
+
+const idbGet = (db, name, key) => new Promise((resolve) => {
+  try {
+    const req = db.transaction(name).objectStore(name).get(key);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => resolve(null);
+  } catch { resolve(null); }
+});
+
+const idbAll = (db, name) => new Promise((resolve) => {
+  try {
+    const req = db.transaction(name).objectStore(name).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => resolve([]);
+  } catch { resolve([]); }
+});
+
+const idbPutAll = (db, name, rows) => new Promise((resolve) => {
+  if (!rows.length) return resolve();
+  try {
+    const t = db.transaction(name, 'readwrite');
+    for (const r of rows) t.objectStore(name).put(r);
+    t.oncomplete = () => resolve();
+    t.onerror = () => resolve();
+    t.onabort = () => resolve();
+  } catch { resolve(); }
+});
+
+// Mirrors dayKey() in js/progress.js. The two have to agree, or "have they
+// studied today" reads the wrong row and the evening nudge fires at someone
+// who has already done their reviews.
+function notifDayKey(t = Date.now()) {
+  const d = new Date(t);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+async function runReminders() {
+  // Not every engine exposes Notification inside a worker. Only bail when it
+  // is there AND says no — otherwise let showNotification have its go.
+  if (self.Notification && self.Notification.permission !== 'granted') return;
+  const db = await notifDB();
+  if (!db) return;
+  try {
+    const settings = await idbGet(db, 'settings', 'notify');
+    if (!settings?.value?.enabled) return;
+
+    const now = Date.now();
+    const due = (await idbAll(db, 'progress'))
+      .filter((r) => typeof r?.key === 'string' && r.key.startsWith(NOTIF_PREFIX) && !r.shown && r.at <= now)
+      .sort((a, b) => a.at - b.at);
+    if (!due.length) return;
+
+    const day = await idbGet(db, 'progress', `day:${notifDayKey(now)}`);
+    const studied = !!day &&
+      ((day.reviews || 0) + (day.new || 0) + (day.newKanji || 0) + (day.newGrammar || 0)) > 0;
+
+    // Everything that has passed is consumed, shown or not. A phone that spent
+    // the week in a drawer must not empty five days of reminders onto the lock
+    // screen the moment it comes back.
+    const fresh = due.filter((r) => r.at > now - NOTIF_GRACE && !(r.skipIfStudied && studied));
+    for (const r of fresh.slice(-2)) {
+      try {
+        await self.registration.showNotification(r.title, {
+          body: r.body,
+          tag: r.tag || `nihongo-${r.kind}`,
+          renotify: true,
+          icon: './icons/icon-192.png',
+          badge: './icons/icon-192.png',
+          lang: 'ja',
+          data: { url: r.url || '#/today', kind: r.kind },
+        });
+      } catch (err) { console.warn('[sw] notification refused', err); }
+    }
+    await idbPutAll(db, 'progress', due.map((r) => ({ ...r, shown: true })));
+  } finally {
+    db.close();
+  }
 }

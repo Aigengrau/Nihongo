@@ -181,6 +181,7 @@ export async function settings({ view, setChrome }) {
   const isIOS = shell.isIOS ?? (() => false);
   const updater = await import('../update.js').catch(() => null);
   const version = await updater?.appVersion().catch(() => null) ?? null;
+  const notify = await import('../notify.js').catch(() => null);
 
   view.innerHTML = `
     ${!isInstalled() ? `<div class="card" style="border-color:var(--accent)">
@@ -212,6 +213,9 @@ export async function settings({ view, setChrome }) {
         </select>
       </div>
     </div>
+
+    <h2 class="section-title">Reminders</h2>
+    <div id="notifyCard"><div class="card"><p class="small faint">Checking what this phone allows…</p></div></div>
 
     <h2 class="section-title">Speech</h2>
     <div class="card">
@@ -282,6 +286,147 @@ export async function settings({ view, setChrome }) {
     </p>
   `;
 
+  // ------------------------------------------------------------ reminders
+  /**
+   * Repainted rather than patched, because the whole card changes shape when
+   * permission does. Only the footer line is refreshed on an ordinary toggle —
+   * rebuilding the card under a time picker the user has just set is rude.
+   */
+  async function paintReminders() {
+    const box = view.querySelector('#notifyCard');
+    if (!box) return;
+
+    if (!notify?.supported?.()) {
+      box.innerHTML = `<div class="card"><p class="small muted">This browser cannot show
+        notifications.${isIOS() ? ' On an iPhone they need iOS 16.4 or newer, and the app added to your Home Screen.' : ''}</p></div>`;
+      return;
+    }
+
+    const perm = notify.permission();
+    const s = await notify.getSettings();
+    const live = s.enabled && perm === 'granted';
+
+    if (!live) {
+      box.innerHTML = `<div class="card">
+        <p class="small muted">A nudge when your reviews are due, plus a word, a kanji, a grammar
+        point or a real phrase through the day. Every one of them is scheduled by this phone —
+        nothing about what you study is sent anywhere.</p>
+        ${perm === 'denied'
+          ? `<p class="small" style="margin-top:10px"><b>Notifications are blocked for this site.</b>
+             Allow them in your browser or phone settings, then come back here.</p>`
+          : `<button class="btn btn-primary btn-block" id="notifyOn" style="margin-top:12px">Turn on reminders</button>`}
+      </div>`;
+      box.querySelector('#notifyOn')?.addEventListener('click', async (e) => {
+        e.currentTarget.disabled = true;
+        const r = await notify.enable();
+        toast(r === 'granted' ? 'Reminders on'
+          : r === 'denied' ? 'Your browser blocked notifications' : 'Not turned on', 3500);
+        await paintReminders();
+      });
+      return;
+    }
+
+    const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+    box.innerHTML = `<div class="card">
+      <div style="margin-bottom:4px">
+        ${notify.KINDS.map((k) => `<div class="switch notif-row" style="border-top:1px solid var(--line)">
+          <span class="notif-mark" lang="ja" aria-hidden="true">${esc(k.mark)}</span>
+          <div class="notif-main">
+            <div>${esc(k.name)}</div>
+            <div class="small faint">${esc(k.hint)}</div>
+            <input type="time" value="${esc(s[k.id].time)}" data-time="${k.id}"
+              aria-label="${esc(k.name)} time" ${s[k.id].on ? '' : 'disabled'}>
+          </div>
+          <input type="checkbox" data-kind="${k.id}" aria-label="${esc(k.name)}" ${s[k.id].on ? 'checked' : ''}>
+        </div>`).join('')}
+      </div>
+
+      <h3 class="section-title" style="margin-top:14px">Days</h3>
+      <div class="seg" id="notifyDays">
+        ${DAYS.map((d, i) => `<button data-day="${i}" aria-pressed="${s.days.includes(i)}"
+          aria-label="${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][i]}">${d}</button>`).join('')}
+      </div>
+
+      <div class="switch" style="border-top:1px solid var(--line);margin-top:10px">
+        <div><div>Stay quiet once I have studied</div>
+          <div class="small faint">Silences the daily nudge for the rest of the day</div></div>
+        <input type="checkbox" id="notifyQuiet" aria-label="Stay quiet once I have studied"
+          ${s.quietWhenDone ? 'checked' : ''}>
+      </div>
+
+      <p class="small faint" id="notifyNext" style="margin-top:12px"></p>
+
+      <button class="btn btn-block" id="notifyTest" style="margin-top:10px">Send one now</button>
+      <button class="btn btn-block btn-ghost" id="notifyOff" style="margin-top:8px">Turn reminders off</button>
+    </div>`;
+
+    await paintNextUp();
+
+    box.querySelectorAll('[data-kind]').forEach((cb) => cb.addEventListener('change', async () => {
+      await notify.setKind(cb.dataset.kind, { on: cb.checked });
+      const t = box.querySelector(`[data-time="${cb.dataset.kind}"]`);
+      if (t) t.disabled = !cb.checked;
+      await paintNextUp();
+    }));
+
+    box.querySelectorAll('[data-time]').forEach((t) => t.addEventListener('change', async () => {
+      // An emptied or half-typed time picker reports "", which would schedule
+      // everything at midnight.
+      if (!/^\d{1,2}:\d{2}/.test(t.value)) { t.value = (await notify.getSettings())[t.dataset.time].time; return; }
+      await notify.setKind(t.dataset.time, { time: t.value });
+      await paintNextUp();
+    }));
+
+    box.querySelector('#notifyDays').addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-day]');
+      if (!b) return;
+      const days = new Set((await notify.getSettings()).days);
+      const d = +b.dataset.day;
+      if (days.has(d)) days.delete(d); else days.add(d);
+      if (!days.size) return toast('Pick at least one day');
+      b.setAttribute('aria-pressed', String(days.has(d)));
+      await notify.setSettings({ days: [...days].sort() });
+      await paintNextUp();
+    });
+
+    box.querySelector('#notifyQuiet').addEventListener('change', async (e) => {
+      await notify.setSettings({ quietWhenDone: e.target.checked });
+    });
+
+    box.querySelector('#notifyTest').addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      const first = [...box.querySelectorAll('[data-kind]')].find((x) => x.checked);
+      const ok = await notify.test(first?.dataset.kind || 'word');
+      btn.disabled = false;
+      toast(ok ? 'Sent — look at your notifications' : 'Your browser would not show it', 3500);
+    });
+
+    box.querySelector('#notifyOff').addEventListener('click', async () => {
+      await notify.disable();
+      toast('Reminders off');
+      await paintReminders();
+    });
+  }
+
+  /** The one line that goes stale on every toggle: what is next, and how it arrives. */
+  async function paintNextUp() {
+    const p = view.querySelector('#notifyNext');
+    if (!p) return;
+    const [next, mode] = await Promise.all([notify.nextUp(), notify.deliveryMode()]);
+    const how = {
+      background: 'These arrive in the background, even with Nihongo closed.',
+      foreground: isIOS()
+        ? 'iOS only runs a web app it is already running, so these arrive while Nihongo is open or freshly backgrounded. Adding it to your Home Screen and opening it daily keeps that window as wide as iOS allows.'
+        : 'Your browser will show these while Nihongo is open or recently in the background. Installing the app lets it run them in the background too.',
+      'no-worker': 'Reload the app once so it can register its worker, then these will start arriving.',
+      unsupported: '',
+    }[mode] || '';
+    p.innerHTML = `${next
+      ? `Next up: <b lang="ja">${esc(next.title)}</b> — ${esc(new Date(next.at).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' }))}.`
+      : 'Nothing is scheduled — switch at least one on.'}<br>${esc(how)}`;
+  }
+
   view.querySelector('#install')?.addEventListener('click', async () => {
     if (!shell.installable?.()) return toast('Use your browser menu → Install app');
     await shell.promptInstall();
@@ -337,6 +482,14 @@ export async function settings({ view, setChrome }) {
       toast('Restored — merged with what you had');
       window.dispatchEvent(new CustomEvent('nihongo:progress'));
     } catch (err) { toast(`Could not restore: ${err.message}`, 4000); }
+  });
+
+  // Last, and caught: a reminders section that cannot paint must not take the
+  // backup button down with it.
+  paintReminders().catch((e) => {
+    console.warn('reminders section failed', e);
+    const box = view.querySelector('#notifyCard');
+    if (box) box.innerHTML = `<div class="card"><p class="small muted">Reminders are unavailable on this device.</p></div>`;
   });
 }
 

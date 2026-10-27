@@ -458,6 +458,27 @@ rt {
   border-radius: 50%; background: var(--text-dim); transition: transform .18s, background .18s; }
 .switch input:checked { background: var(--accent); border-color: transparent; }
 .switch input:checked::after { transform: translateX(20px); background: #fff; }
+/* A time picker sits in the same row as a toggle and must not inherit it. */
+.switch input[type="time"] {
+  width: auto; height: auto; min-height: 38px; padding: 0 8px;
+  appearance: auto; border-radius: 10px; background: var(--card-hi);
+  color: var(--text); font: inherit; font-size: 13.5px; font-weight: 620;
+  transition: opacity .18s;
+}
+.switch input[type="time"]::after { content: none; }
+.switch input[type="time"]:disabled { opacity: .4; }
+/* One reminder. A time picker and a toggle side by side leave a phone about
+   ninety pixels for the label, which wrapped every name onto two lines; the
+   picker goes under the text instead, where it has room to be itself. */
+.notif-row { align-items: flex-start; gap: 10px; padding: 11px 0; }
+.notif-row > input[type="checkbox"] { margin-top: 2px; }
+.notif-main { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
+/* The 語 / 漢 / 文 marker, matching the Today tiles. */
+.notif-mark {
+  flex: none; width: 34px; height: 34px; border-radius: 10px;
+  display: grid; place-content: center; font-size: 17px;
+  background: var(--card-hi); color: var(--text-dim);
+}
 
 .tiles { display: grid; gap: 9px; }
 @media (min-width: 560px) { .tiles { grid-template-columns: 1fr 1fr; } }

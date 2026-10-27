@@ -18,6 +18,10 @@ import { chromium, devices } from 'playwright';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const PREV = process.argv[2] || 'HEAD~1';
+// Read from the worker rather than written down here, so cutting a release is
+// one edit and not two — a stale literal here fails a working upgrade.
+const BUILD = /const BUILD = '([^']+)'/
+  .exec(fs.readFileSync(path.join(ROOT, 'app', 'sw.js'), 'utf8'))[1];
 const PORT = 8124;
 const BASE = `http://localhost:${PORT}`;
 
@@ -117,12 +121,12 @@ if (offered) {
     const m = await import('./js/update.js').catch(() => null);
     return { caches: names, version: m ? await m.appVersion() : null };
   });
-  check('the phone is on the new build', now.version === 'v1.2.1', String(now.version));
+  check('the phone is on the new build', now.version === BUILD, String(now.version));
   check('the old shell is gone', !now.caches.includes(oldShell), now.caches.join(', '));
   await page.goto(`${BASE}/#/settings`, { waitUntil: 'load' });
   await page.waitForTimeout(2000);
   check('Settings works on the new build', /version/i.test(await page.locator('#view').innerText()));
-  check('and shows the running build', (await page.locator('#view').innerText()).includes('v1.2.1'));
+  check('and shows the running build', (await page.locator('#view').innerText()).includes(BUILD));
 
   // A build's shell must be immutable: deploy something different and the
   // running build has to keep serving its own files until its worker is

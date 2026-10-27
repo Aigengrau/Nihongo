@@ -62,7 +62,7 @@ export async function words({ params, view, setChrome, signal }) {
 }
 
 // ---------------------------------------------------------------- kanji
-export async function kanjiList({ params, view, setChrome, signal }) {
+export async function kanjiList({ params, query, view, setChrome, signal }) {
   const lv = params[0];
   const mode = params[1] || 'list';
   setChrome({ title: `${lv} kanji`, back: true });
@@ -122,6 +122,15 @@ export async function kanjiList({ params, view, setChrome, signal }) {
       if (w) openWordSheet(w.dataset.word);
     });
   });
+
+  // ?k= opens one character's card straight away — where a "kanji of the day"
+  // notification lands. Clicking the cell reuses the handler above rather than
+  // building the same sheet a second way.
+  const wanted = query?.get('k');
+  if (wanted) {
+    const cell = [...view.querySelectorAll('[data-c]')].find((b) => b.dataset.c === wanted);
+    cell?.click();
+  }
 }
 
 // ---------------------------------------------------------------- kana

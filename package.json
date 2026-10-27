@@ -11,7 +11,7 @@
     "build:icons": "node build/make-icons.mjs",
     "fetch": "node build/fetch-sources.mjs",
     "bake:videos": "node build/bake-videos.mjs",
-    "test": "node build/test/srs.mjs && node build/test/deinflect.mjs && node build/test/tok.mjs && node build/test/grammar.mjs",
+    "test": "node build/test/srs.mjs && node build/test/deinflect.mjs && node build/test/tok.mjs && node build/test/grammar.mjs && node build/test/notify.mjs",
     "test:e2e": "node build/test/run.mjs",
     "test:offline": "node build/test/offline.mjs"
   }

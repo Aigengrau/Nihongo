@@ -83,6 +83,7 @@ Open the `https://….trycloudflare.com` URL it prints, on your phone.
 | **Conjugation drill** | 1,848 verbs and adjectives, drilled only in forms you have reached at your level. |
 | **Five ways through a list** | Both the word list and the kanji list have a mode bar: **List**, **Flashcards** (shuffled, tap to flip), **Quiz** (four-choice, both directions, offers to add what you missed to your real deck), **Match** (pair five at a time), **Listen** (hear it, pick it). None of these touch your review schedule. |
 | **Say it yourself** | Production practice — English in, Japanese out, built from kana tiles. Unlocks per word once you can reliably recognise it. |
+| **Reminders** | A nudge when the day's target is still waiting, plus a word, a kanji, a grammar point or a real phrase delivered through the day. Six kinds, each with its own time and its own switch, on the days you choose. |
 
 **Before N5** — hiragana and katakana, 104 characters with a quiz that knows
 which pairs learners actually confuse (ね/れ/わ, シ/ツ, ソ/ン).
@@ -143,6 +144,52 @@ also pulls that level's stories, the sentence corpus and the conjugation tables.
 The only part that needs a connection is the YouTube player itself. Everything
 else — words, kanji, grammar, stories, reviews, tap-any-word lookup — works with
 the phone in aeroplane mode.
+
+---
+
+## Reminders
+
+Settings → **Reminders** turns on six kinds of notification, each with its own
+time, its own switch and a shared choice of weekdays:
+
+| | |
+|---|---|
+| 今 **Daily target** | Your reviews and today's new words are waiting. |
+| 語 **Word of the day** | One word from your level, with its reading. Tapping it opens that word. |
+| 漢 **Kanji of the day** | One character, its on and kun readings and what it means. Tapping it opens that character's card. |
+| 文 **Grammar of the day** | One pattern. Tapping it opens the full explanation. |
+| 例 **Phrase of the day** | A real example sentence, Japanese and English. |
+| 火 **Streak rescue** | Late in the day, and only if you have not studied yet. |
+
+*Stay quiet once I have studied* silences the daily nudge for the rest of a day
+you have already done, and the streak rescue always obeys it.
+
+There is no server behind this app, so there is nothing to push from: every
+notification is scheduled and delivered by the phone itself. The page bakes a
+fortnight of **fully written** notifications — title, body, and the link to tap
+— into IndexedDB, and whoever wakes up first delivers them: the service worker
+on a periodic background sync, or the page's own timers while the app is still
+in memory. That split is the design. A worker cannot load the dictionary or
+pick a word, and one that tried would be a second copy of half the app, drifting
+out of step with the first; by the time a row reaches the queue it is only text.
+
+What that gets you depends on what the browser is willing to do, and Settings
+says which one you have rather than promising more:
+
+| | |
+|---|---|
+| Installed, Android or desktop Chromium | Delivered in the background, with the app closed. |
+| Everything else, iOS included | Delivered while the app is open or recently backgrounded. iOS only runs a web app it is already running. |
+
+Nothing ever pops up at someone who is looking at the app, nothing fires twice
+however many wake-ups follow, and a phone that spent the day in a bag gets the
+most recent couple of reminders rather than the whole backlog. A word of the day
+walks the level list with a stride coprime to its length, so a year of them is
+a year of different words rather than a dice roll that offers 水 three times in
+a week.
+
+Nothing about what you study leaves the phone: there is no subscription, no push
+endpoint and no server to send one to.
 
 ---
 
@@ -258,6 +305,7 @@ app/                 the app — this is the whole deployable
     store.js         IndexedDB + backup/restore
     grammar.js       grammar syllabus + question generation (no DOM)
     swipe.js         the one swipe gesture, used by every card screen
+    notify.js        reminder scheduling and the word/kanji of the day
     screens/         one module per screen
   data/              generated — do not edit by hand
   sw.js              service worker (offline)
@@ -273,7 +321,7 @@ serve.mjs            zero-dependency local server
 ## Tests
 
 ```bash
-npm test            # scheduler, deinflection (24 cases + 10 keigo), tokenizer, grammar syllabus
+npm test            # scheduler, deinflection (24 cases + 10 keigo), tokenizer, grammar syllabus, reminder schedule
 npm run test:e2e    # every screen in a headless phone browser
 node build/test/layout.mjs        # no horizontal overflow at 360px and 320px
 node build/test/blockers.mjs      # save->review, backup restore, offline video fallback
@@ -284,6 +332,7 @@ node build/test/grammar-ui.mjs    # explain -> practise -> scheduled -> reviewed
 node build/test/swipe.mjs         # buttons reachable without scrolling, swipe + undo
 node build/test/update.mjs        # install v1, deploy v2, update in place, keep your data
 node build/test/upgrade.mjs      # upgrade from the real previous commit, mixed-build safety
+node build/test/notify-ui.mjs     # reminders: settings, scheduling, delivery, the worker's own path
 ```
 
 The browser tests need a server on port 8099 (`node serve.mjs 8099`) and
